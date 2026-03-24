@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passgen - 日本語読みパスワード生成器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#242836;--border:#2e3347;
+  --text:#e4e4e7;--text2:#9ca3af;--accent:#6366f1;--accent2:#818cf8;
+  --green:#22c55e;--red:#ef4444;--orange:#f59e0b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans JP','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem;}
+.container{max-width:1000px;margin:0 auto;}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.subtitle{color:var(--text2);margin-bottom:1.5rem;font-size:.9rem;}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border);}
+.tab{padding:.7rem 1.5rem;font-size:.95rem;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Common */
+.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:.3rem;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;padding:.6rem .8rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.95rem;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:60px;font-size:.85rem;}
+.btn{padding:.6rem 1.2rem;border:none;border-radius:6px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}.btn-danger:hover{background:rgba(239,68,68,.1);}
+.btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{background:#d97706;}
+.actions{display:flex;gap:.8rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.panel{margin-bottom:1.5rem;padding:1.2rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
+.panel-header{font-size:.9rem;color:var(--accent2);font-weight:600;margin-bottom:1rem;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;}
+.full{grid-column:1/-1;}
+
+/* Tables */
+.pw-table{width:100%;border-collapse:collapse;margin-bottom:1rem;}
+.pw-table th{text-align:left;padding:.6rem .8rem;background:var(--surface2);color:var(--text2);font-size:.8rem;font-weight:600;border-bottom:1px solid var(--border);}
+.pw-table td{padding:.5rem .8rem;border-bottom:1px solid var(--border);font-size:.9rem;vertical-align:middle;}
+.pw-table tr:hover{background:var(--surface);}
+.pw-cell{font-family:Consolas,Monaco,monospace;font-size:1rem;font-weight:600;letter-spacing:.5px;color:var(--green);user-select:all;cursor:pointer;}
+.pw-cell:hover{color:#4ade80;}
+.reading-romaji{color:var(--text2);font-size:.85rem;}
+.reading-kana{font-size:.85rem;}
+.copy-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.75rem;transition:all .2s;}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+.copy-btn.copied{border-color:var(--green);color:var(--green);}
+.no{color:var(--text2);text-align:center;width:2.2rem;}
+.chk{text-align:center;width:2.2rem;}
+.chk input{accent-color:var(--accent);cursor:pointer;}
+.strength{display:inline-block;padding:.15rem .5rem;border-radius:3px;font-size:.7rem;font-weight:600;}
+.strength-strong{background:rgba(34,197,94,.15);color:var(--green);}
+.strength-medium{background:rgba(234,179,8,.15);color:#eab308;}
+.empty{text-align:center;padding:3rem;color:var(--text2);background:var(--surface);border-radius:8px;border:1px dashed var(--border);}
+.toast{position:fixed;bottom:2rem;right:2rem;padding:.8rem 1.2rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;transform:translateY(100px);opacity:0;transition:all .3s;z-index:100;}
+.toast.show{transform:translateY(0);opacity:1;}
+.settings{padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.5rem;display:none;}
+.settings.open{display:block;}
+.settings h3{font-size:.9rem;margin-bottom:.8rem;}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.8rem;}
+.setting-item label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text2);cursor:pointer;}
+.setting-item input[type="checkbox"]{accent-color:var(--accent);}
+
+/* Bulk specific */
+.bulk-input-area{margin-bottom:1rem;}
+.bulk-input-area textarea{font-family:Consolas,Monaco,monospace;font-size:.85rem;min-height:120px;line-height:1.6;}
+.bulk-hint{font-size:.75rem;color:var(--text2);margin-top:.4rem;line-height:1.5;}
+.file-input-wrap{display:inline-block;position:relative;}
+.file-input-wrap input[type="file"]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;top:0;left:0;}
+.user-name-col{min-width:100px;font-weight:500;}
+.user-id-col{min-width:80px;color:var(--text2);font-size:.85rem;}
+.bulk-count{color:var(--accent2);font-size:.85rem;font-weight:500;}
+.regen-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:.2rem .4rem;border-radius:3px;cursor:pointer;font-size:.7rem;}
+.regen-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+@media(max-width:768px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .actions{flex-direction:column;}.btn{width:100%;text-align:center;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Passgen</h1>
+  <p class="subtitle">日本語読みパスワード生成器 - 読める・覚えられる・安全なパスワード</p>
+
+  <!-- モード切替タブ -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('single')">単体モード</button>
+    <button class="tab" onclick="switchTab('bulk')">一括発行モード</button>
+  </div>
+
+  <!-- ===== 単体モード ===== -->
+  <div class="tab-panel active" id="panel-single">
+    <div class="grid-4" style="margin-bottom:1.5rem;">
+      <div class="field"><label>生成数</label>
+        <select id="count"><option value="1">1個</option><option value="3">3個</option><option value="5">5個</option><option value="10" selected>10個</option><option value="20">20個</option><option value="50">50個</option></select>
+      </div>
+      <div class="field"><label>パスワード長</label>
+        <select id="lengthPref"><option value="short">短め (8-10)</option><option value="medium" selected>標準 (10-14)</option><option value="long">長め (14-18)</option></select>
+      </div>
+      <div class="field"><label>特殊文字</label>
+        <select id="symbolSet"><option value="standard" selected>標準 (!@#$%&*)</option><option value="safe">安全 (!@#$)</option><option value="all">全て (!@#$%^&*_+-=)</option></select>
+      </div>
+      <div><button class="btn btn-primary" onclick="generate()">生成</button></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="toggleSettings()">生成設定</button>
+      <button class="btn btn-secondary" onclick="selectAll()">全選択</button>
+      <button class="btn btn-secondary" onclick="printNotice()">アカウント通知書</button>
+      <button class="btn btn-secondary" onclick="printList()">一覧印刷</button>
+      <button class="btn btn-secondary" onclick="exportCSV()">CSV出力</button>
+      <button class="btn btn-danger" onclick="clearAll()">クリア</button>
+    </div>
+
+    <div class="settings" id="settings">
+      <h3>生成設定</h3>
+      <div class="settings-grid">
+        <div class="setting-item"><label><input type="checkbox" id="optUppercase" checked> 大文字を含む</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="optDigits" checked> 数字を含む</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="optSymbols" checked> 特殊文字を含む</label></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">アカウント通知書の記載情報</div>
+      <div class="grid-2">
+        <div class="field"><label>組織名 / 部署名</label><input type="text" id="orgName" placeholder="例: 株式会社ABC 情報システム部"></div>
+        <div class="field"><label>システム名</label><input type="text" id="systemName" placeholder="例: 社内ポータル / Microsoft 365"></div>
+        <div class="field"><label>対象者名</label><input type="text" id="realName" placeholder="例: 山田 太郎"></div>
+        <div class="field"><label>ログインID</label><input type="text" id="userName" placeholder="例: yamada.taro"></div>
+        <div class="field"><label>ログインURL</label><input type="text" id="loginUrl" placeholder="例: https://portal.example.com/login"></div>
+        <div class="field"><label>発行者</label><input type="text" id="issuerName" placeholder="例: 情報システム部 鈴木"></div>
+        <div class="field full"><label>備考</label><textarea id="noticeRemarks" placeholder="例: 初回ログイン後、速やかにパスワードを変更してください。"></textarea></div>
+      </div>
+    </div>
+
+    <div id="output"><div class="empty">「生成」ボタンを押してパスワードを生成してください</div></div>
+  </div>
+
+  <!-- ===== 一括発行モード ===== -->
+  <div class="tab-panel" id="panel-bulk">
+    <div class="panel">
+      <div class="panel-header">ユーザーリスト入力</div>
+      <div class="bulk-input-area">
+        <div class="field">
+          <label>1行に1ユーザー: 「名前, ログインID」 の形式で入力（CSV/TSV対応）</label>
+          <textarea id="bulkInput" placeholder="山田 太郎, yamada.taro&#10;佐藤 花子, sato.hanako&#10;鈴木 一郎, suzuki.ichiro&#10;田中 美咲, tanaka.misaki"></textarea>
+        </div>
+        <div class="bulk-hint">
+          区切り文字: カンマ(,) またはタブ(TAB) に対応。ログインIDを省略した場合は名前のみで発行されます。
+        </div>
+      </div>
+      <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;">
+        <div class="file-input-wrap">
+          <button class="btn btn-secondary">CSVファイル読込</button>
+          <input type="file" accept=".csv,.tsv,.txt" onchange="loadCSV(event)">
+        </div>
+        <div class="field" style="width:150px;">
+          <select id="bulkLengthPref"><option value="short">短め</option><option value="medium" selected>標準</option><option value="long">長め</option></select>
+        </div>
+        <div class="field" style="width:180px;">
+          <select id="bulkSymbolSet"><option value="standard" selected>標準 (!@#$%&*)</option><option value="safe">安全 (!@#$)</option><option value="all">全て</option></select>
+        </div>
+        <button class="btn btn-orange" onclick="bulkGenerate()">一括生成</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">共通設定（通知書に反映）</div>
+      <div class="grid-2">
+        <div class="field"><label>組織名 / 部署名</label><input type="text" id="bulkOrgName" placeholder="例: 株式会社ABC 情報システム部"></div>
+        <div class="field"><label>システム名</label><input type="text" id="bulkSystemName" placeholder="例: 社内ポータル / Google Workspace"></div>
+        <div class="field"><label>ログインURL</label><input type="text" id="bulkLoginUrl" placeholder="例: https://portal.example.com/login"></div>
+        <div class="field"><label>発行者</label><input type="text" id="bulkIssuerName" placeholder="例: 情報システム部 鈴木"></div>
+        <div class="field full"><label>備考</label><textarea id="bulkRemarks" placeholder="例: 初回ログイン後、速やかにパスワードを変更してください。"></textarea></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Google Workspace 連携設定</div>
+      <div class="grid-3">
+        <div class="field"><label>メールドメイン</label><input type="text" id="gwsDomain" placeholder="例: example.com"></div>
+        <div class="field"><label>組織部門パス (Org Unit Path)</label><input type="text" id="gwsOrgUnit" placeholder="例: / または /営業部"></div>
+        <div class="field"><label>初回ログイン時パスワード変更</label>
+          <select id="gwsChangePassword"><option value="TRUE" selected>必須 (TRUE)</option><option value="FALSE">不要 (FALSE)</option></select>
+        </div>
+      </div>
+      <div class="bulk-hint" style="margin-top:.5rem;">
+        ユーザーリストの「ログインID」がメールアドレスのローカルパート（@より前）になります。<br>
+        名前は「姓 名」の形式で入力してください（スペース区切り）。姓のみの場合はLast Nameに入ります。
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="bulkSelectAll()">全選択</button>
+      <button class="btn btn-secondary" onclick="bulkPrintNotices()">一括通知書印刷</button>
+      <button class="btn btn-secondary" onclick="bulkPrintList()">一覧印刷</button>
+      <button class="btn btn-secondary" onclick="bulkExportCSV()">CSV出力</button>
+      <button class="btn btn-secondary" onclick="gwsExportAdd()">GWS新規追加CSV</button>
+      <button class="btn btn-secondary" onclick="gwsExportUpdate()">GWS更新CSV</button>
+      <button class="btn btn-secondary" onclick="gwsExportDelete()">GWS削除CSV</button>
+      <button class="btn btn-danger" onclick="bulkClear()">クリア</button>
+    </div>
+
+    <div id="bulkOutput"><div class="empty">ユーザーリストを入力して「一括生成」を押してください</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="dict.js"></script>
+<script>
+// WORD_LIST is loaded from dict.js (3200+ entries)
+
+// ===== パスワード生成エンジン =====
+const SYM_STD='!@#$%&*',SYM_SAFE='!@#$',SYM_ALL='!@#$%^&*_+-=';
+function rand(n){return Math.floor(Math.random()*n);}
+function pick(a){return a[rand(a.length)];}
+function cap(s){return s?s[0].toUpperCase()+s.slice(1):s;}
+function pickWord(h){
+  let f=h==='short'?WORD_LIST.filter(w=>w[0].length<=4):h==='long'?WORD_LIST.filter(w=>w[0].length>=3):WORD_LIST;
+  return pick(f.length?f:WORD_LIST);
+}
+const PAT=[
+  (s,d,a,b)=>s+a+b+d,(s,d,a,b)=>s+d+a+b,(s,d,a,b)=>a+d+s+b,
+  (s,d,a,b)=>a+b+s+d,(s,d,a,b)=>d+a+s+b,(s,d,a,b)=>d+s+a+b,
+  (s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,
+  (s,d,a,b)=>d+a+b+s,
+];
+
+function genPw(lengthPref,symbolSet){
+  const syms=symbolSet==='safe'?SYM_SAFE:symbolSet==='all'?SYM_ALL:SYM_STD;
+  const h1=lengthPref==='short'?'short':'medium';
+  const h2=lengthPref==='short'?'short':lengthPref==='long'?'long':'medium';
+  const[r1,k1]=pickWord(h1),[r2,k2]=pickWord(h2);
+  const w1=cap(r1),w2=cap(r2);
+  const d=lengthPref==='long'?String(rand(100)):String(rand(10));
+  const s=syms[rand(syms.length)];
+  const pw=pick(PAT)(s,d,w1,w2);
+  const len=pw.length;
+  const cs=(/[A-Z]/.test(pw)?26:0)+(/[a-z]/.test(pw)?26:0)+(/[0-9]/.test(pw)?10:0)+(/[^A-Za-z0-9]/.test(pw)?15:0);
+  const ent=Math.floor(len*Math.log2(cs||2));
+  return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy:ent,strength:ent>=50?'strong':'medium',length:len};
+}
+
+// ===== タブ切替 =====
+function switchTab(mode){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  if(mode==='bulk'){
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.getElementById('panel-bulk').classList.add('active');
+  }else{
+    document.querySelectorAll('.tab')[0].classList.add('active');
+    document.getElementById('panel-single').classList.add('active');
+  }
+}
+
+// ===== 共通 =====
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function toggleSettings(){document.getElementById('settings').classList.toggle('open');}
+const FONT_LINK='<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">';
+
+// ===========================
+// 単体モード
+// ===========================
+let passwords=[];
+
+function generate(){
+  const n=parseInt(document.getElementById('count').value);
+  const lp=document.getElementById('lengthPref').value;
+  const ss=document.getElementById('symbolSet').value;
+  passwords=[];
+  for(let i=0;i<n;i++)passwords.push({...genPw(lp,ss),selected:true});
+  renderSingle();
+}
+function renderSingle(){
+  const out=document.getElementById('output');
+  if(!passwords.length){out.innerHTML='<div class="empty">「生成」ボタンを押してパスワードを生成してください</div>';return;}
+  let h='<table class="pw-table"><thead><tr><th class="chk"><input type="checkbox" onchange="toggleAllSingle(this.checked)" checked></th><th class="no">No</th><th>パスワード</th><th>読み方（カタカナ）</th><th>読み方（ローマ字）</th><th>強度</th><th></th></tr></thead><tbody>';
+  passwords.forEach((p,i)=>{
+    h+=`<tr><td class="chk"><input type="checkbox" ${p.selected?'checked':''} onchange="passwords[${i}].selected=this.checked"></td><td class="no">${i+1}</td><td class="pw-cell" onclick="copySingle(${i})">${esc(p.password)}</td><td class="reading-kana">${esc(p.readingKana)}</td><td class="reading-romaji">${esc(p.readingRomaji)}</td><td><span class="strength strength-${p.strength}">${p.length}文字/${p.entropy}bit</span></td><td><button class="copy-btn" id="cs-${i}" onclick="copySingle(${i})">コピー</button></td></tr>`;
+  });
+  out.innerHTML=h+'</tbody></table>';
+}
+function toggleAllSingle(c){passwords.forEach(p=>p.selected=c);renderSingle();}
+function selectAll(){passwords.forEach(p=>p.selected=true);renderSingle();}
+function clearAll(){passwords=[];renderSingle();}
+function copySingle(i){
+  navigator.clipboard.writeText(passwords[i].password).then(()=>{
+    const b=document.getElementById('cs-'+i);
+    if(b){b.textContent='OK';b.classList.add('copied');}
+    showToast('コピーしました');
+    setTimeout(()=>{if(b){b.textContent='コピー';b.classList.remove('copied');}},2000);
+  });
+}
+function getSingleForm(){
+  return{org:document.getElementById('orgName').value,system:document.getElementById('systemName').value,
+    name:document.getElementById('realName').value,user:document.getElementById('userName').value,
+    url:document.getElementById('loginUrl').value,issuer:document.getElementById('issuerName').value,
+    remarks:document.getElementById('noticeRemarks').value};
+}
+
+// 単体: 通知書
+function printNotice(){
+  const sel=passwords.filter(p=>p.selected);
+  if(!sel.length){showToast('パスワードを選択してください');return;}
+  const f=getSingleForm();
+  openPrint(buildNoticePages(sel.map(p=>({pw:p,name:f.name,user:f.user})),f));
+}
+// 単体: 一覧
+function printList(){
+  const sel=passwords.filter(p=>p.selected);
+  if(!sel.length){showToast('パスワードを選択してください');return;}
+  const f=getSingleForm();
+  openPrint(buildListPage(sel,f));
+}
+// 単体: CSV
+function exportCSV(){
+  const sel=passwords.filter(p=>p.selected);
+  if(!sel.length){showToast('パスワードを選択してください');return;}
+  const f=getSingleForm();
+  let csv='No,Name,UserID,Password,Reading_Kana,Reading_Romaji,Length\n';
+  sel.forEach((p,i)=>{csv+=`${i+1},"${f.name}","${f.user}","${p.password}","${p.readingKana}","${p.readingRomaji}",${p.length}\n`;});
+  downloadCSV(csv,'passgen_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// ===========================
+// 一括発行モード
+// ===========================
+let bulkEntries=[];// [{name,user,pw:{password,readingKana,...},selected}]
+
+function parseBulkInput(){
+  const txt=document.getElementById('bulkInput').value.trim();
+  if(!txt)return[];
+  return txt.split('\n').map(line=>{
+    line=line.trim();if(!line)return null;
+    // tab or comma separated
+    let parts=line.includes('\t')?line.split('\t'):line.split(',');
+    parts=parts.map(s=>s.trim()).filter(Boolean);
+    if(!parts.length)return null;
+    return{name:parts[0]||'',user:parts[1]||''};
+  }).filter(Boolean);
+}
+
+function loadCSV(ev){
+  const file=ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('bulkInput').value=e.target.result;
+    showToast(file.name+' を読み込みました');
+  };
+  reader.readAsText(file,'UTF-8');
+  ev.target.value='';
+}
+
+function bulkGenerate(){
+  const users=parseBulkInput();
+  if(!users.length){showToast('ユーザーリストを入力してください');return;}
+  const lp=document.getElementById('bulkLengthPref').value;
+  const ss=document.getElementById('bulkSymbolSet').value;
+  bulkEntries=users.map(u=>({name:u.name,user:u.user,pw:genPw(lp,ss),selected:true}));
+  renderBulk();
+  showToast(bulkEntries.length+'件のパスワードを生成しました');
+}
+
+function bulkRegenOne(i){
+  const lp=document.getElementById('bulkLengthPref').value;
+  const ss=document.getElementById('bulkSymbolSet').value;
+  bulkEntries[i].pw=genPw(lp,ss);
+  renderBulk();
+}
+
+function renderBulk(){
+  const out=document.getElementById('bulkOutput');
+  if(!bulkEntries.length){out.innerHTML='<div class="empty">ユーザーリストを入力して「一括生成」を押してください</div>';return;}
+  let h='<div class="bulk-count">'+bulkEntries.length+'件のアカウント</div>';
+  h+='<table class="pw-table"><thead><tr><th class="chk"><input type="checkbox" onchange="bulkToggleAll(this.checked)" checked></th><th class="no">No</th><th>対象者名</th><th>ログインID</th><th>パスワード</th><th>読み方</th><th></th></tr></thead><tbody>';
+  bulkEntries.forEach((e,i)=>{
+    h+=`<tr>
+      <td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="bulkEntries[${i}].selected=this.checked"></td>
+      <td class="no">${i+1}</td>
+      <td class="user-name-col">${esc(e.name)}</td>
+      <td class="user-id-col">${esc(e.user)}</td>
+      <td class="pw-cell" onclick="copyBulk(${i})">${esc(e.pw.password)}</td>
+      <td class="reading-kana" style="font-size:.8rem;">${esc(e.pw.readingKana)}<br><span class="reading-romaji">${esc(e.pw.readingRomaji)}</span></td>
+      <td><button class="regen-btn" onclick="bulkRegenOne(${i})" title="再生成">&#x21bb;</button></td>
+    </tr>`;
+  });
+  out.innerHTML=h+'</tbody></table>';
+}
+
+function bulkToggleAll(c){bulkEntries.forEach(e=>e.selected=c);renderBulk();}
+function bulkSelectAll(){bulkEntries.forEach(e=>e.selected=true);renderBulk();}
+function bulkClear(){bulkEntries=[];renderBulk();}
+function copyBulk(i){
+  navigator.clipboard.writeText(bulkEntries[i].pw.password).then(()=>showToast(bulkEntries[i].name+' のパスワードをコピーしました'));
+}
+
+function getBulkForm(){
+  return{org:document.getElementById('bulkOrgName').value,system:document.getElementById('bulkSystemName').value,
+    url:document.getElementById('bulkLoginUrl').value,issuer:document.getElementById('bulkIssuerName').value,
+    remarks:document.getElementById('bulkRemarks').value};
+}
+
+// 一括: 通知書
+function bulkPrintNotices(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const f=getBulkForm();
+  openPrint(buildNoticePages(sel.map(e=>({pw:e.pw,name:e.name,user:e.user})),f));
+}
+// 一括: 一覧
+function bulkPrintList(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const f=getBulkForm();
+  openPrint(buildBulkListPage(sel,f));
+}
+// 一括: CSV
+function bulkExportCSV(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const f=getBulkForm();
+  let csv='No,Name,UserID,Password,Reading_Kana,Reading_Romaji,Length,System\n';
+  sel.forEach((e,i)=>{csv+=`${i+1},"${e.name}","${e.user}","${e.pw.password}","${e.pw.readingKana}","${e.pw.readingRomaji}",${e.pw.length},"${f.system}"\n`;});
+  downloadCSV(csv,'passgen_bulk_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// ===== Google Workspace CSV =====
+function splitName(fullName){
+  // 「姓 名」形式を分割。スペース区切り。姓のみなら Last Name に入れる
+  const parts=fullName.trim().split(/\s+/);
+  if(parts.length>=2) return{last:parts[0],first:parts.slice(1).join(' ')};
+  return{last:parts[0]||'',first:''};
+}
+function getGwsSettings(){
+  return{
+    domain:document.getElementById('gwsDomain').value.trim(),
+    orgUnit:document.getElementById('gwsOrgUnit').value.trim()||'/',
+    changePw:document.getElementById('gwsChangePassword').value,
+  };
+}
+function buildEmail(userId,domain){
+  if(!domain)return userId;
+  // 既に@が含まれていればそのまま
+  if(userId.includes('@'))return userId;
+  return userId+'@'+domain;
+}
+function csvQuote(v){
+  v=String(v);
+  if(v.includes(',')||v.includes('"')||v.includes('\n'))return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+
+// GWS新規追加CSV
+function gwsExportAdd(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const g=getGwsSettings();
+  if(!g.domain){showToast('メールドメインを入力してください');return;}
+
+  let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);
+    const email=buildEmail(e.user,g.domain);
+    csv+=csvQuote(n.first)+','+csvQuote(n.last)+','+csvQuote(email)+','+csvQuote(e.pw.password)+','+csvQuote(g.orgUnit)+','+g.changePw+'\n';
+  });
+  downloadCSV(csv,'gws_add_users_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// GWS更新CSV（パスワードリセット用 - 既存ユーザーのパスワードを更新）
+function gwsExportUpdate(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const g=getGwsSettings();
+  if(!g.domain){showToast('メールドメインを入力してください');return;}
+
+  let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);
+    const email=buildEmail(e.user,g.domain);
+    csv+=csvQuote(n.first)+','+csvQuote(n.last)+','+csvQuote(email)+','+csvQuote(e.pw.password)+','+csvQuote(g.orgUnit)+','+g.changePw+'\n';
+  });
+  downloadCSV(csv,'gws_update_users_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// GWS削除CSV（メールアドレスのみ）
+function gwsExportDelete(){
+  const sel=bulkEntries.filter(e=>e.selected);
+  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const g=getGwsSettings();
+  if(!g.domain){showToast('メールドメインを入力してください');return;}
+
+  let csv='Email Address [Required]\n';
+  sel.forEach(e=>{
+    csv+=csvQuote(buildEmail(e.user,g.domain))+'\n';
+  });
+  downloadCSV(csv,'gws_delete_users_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// ===========================
+// 印刷HTML生成（共通）
+// ===========================
+const NOTICE_CSS=`
+@page{size:A4;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans JP',sans-serif;color:#222;}
+.page{width:210mm;min-height:297mm;padding:20mm 25mm;page-break-after:always;position:relative;}
+.page:last-child{page-break-after:auto;}
+.header{text-align:center;margin-bottom:16mm;}
+.doc-title{font-size:22px;font-weight:700;letter-spacing:6px;border-bottom:2px solid #333;display:inline-block;padding-bottom:4px;}
+.date{font-size:11px;color:#666;margin-top:6px;}
+.to{font-size:14px;margin-bottom:12mm;}
+.to .name{font-size:18px;font-weight:600;}.to .suffix{font-size:14px;font-weight:400;}
+.section-title{font-size:12px;font-weight:600;color:#444;border-left:3px solid #4f46e5;padding-left:8px;margin-bottom:4mm;}
+.account-box{border:1px solid #ccc;border-radius:6px;padding:5mm 6mm;margin-bottom:8mm;background:#fafafe;}
+.account-row{display:flex;padding:2.5mm 0;border-bottom:1px solid #eee;font-size:12px;}
+.account-row:last-child{border-bottom:none;}
+.account-label{width:40mm;flex-shrink:0;color:#666;font-weight:500;}
+.account-value{font-weight:500;}
+.account-value.pw{font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;color:#1a6b35;letter-spacing:1px;}
+.account-value.reading{font-size:11px;color:#888;margin-top:1px;}
+.remarks-box{border:1px solid #ddd;border-radius:4px;padding:4mm 5mm;background:#fff8f0;font-size:11px;line-height:1.7;color:#555;margin-bottom:8mm;}
+.remarks-box .rtitle{font-weight:600;color:#b45309;margin-bottom:2mm;}
+.default-notes{font-size:10px;color:#888;line-height:1.6;margin-bottom:10mm;}
+.default-notes li{margin-bottom:1mm;}
+.sign-area{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12mm;}
+.sign-block{text-align:center;}.sign-label{font-size:10px;color:#888;margin-bottom:2mm;}
+.sign-line{width:50mm;border-bottom:1px solid #999;height:12mm;}
+.issuer-block{text-align:right;font-size:11px;color:#555;}
+.footer-line{position:absolute;bottom:12mm;left:25mm;right:25mm;border-top:1px solid #ddd;padding-top:3mm;font-size:8px;color:#bbb;text-align:center;}
+`;
+
+// entries: [{pw,name,user}], f: common form data
+function buildNoticePages(entries,f){
+  const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+  let pages='';
+  entries.forEach(e=>{
+    pages+=`<div class="page">
+<div class="header"><div class="doc-title">アカウント通知書</div>
+${f.org?'<div style="font-size:11px;color:#666;margin-top:4px;">'+esc(f.org)+'</div>':''}
+<div class="date">${today}</div></div>
+<div class="to">${e.name?'<span class="name">'+esc(e.name)+'</span> <span class="suffix">殿</span>':''}</div>
+<div class="section-title">アカウント情報</div>
+<div class="account-box">
+${f.system?'<div class="account-row"><div class="account-label">システム名</div><div class="account-value">'+esc(f.system)+'</div></div>':''}
+${e.user?'<div class="account-row"><div class="account-label">ログインID</div><div class="account-value">'+esc(e.user)+'</div></div>':''}
+${f.url?'<div class="account-row"><div class="account-label">ログインURL</div><div class="account-value" style="font-size:11px;">'+esc(f.url)+'</div></div>':''}
+<div class="account-row"><div class="account-label">初期パスワード</div><div class="account-value pw">${esc(e.pw.password)}</div></div>
+<div class="account-row"><div class="account-label">パスワード読み方</div><div><div class="account-value reading">${esc(e.pw.readingKana)} / ${esc(e.pw.readingRomaji)}</div></div></div>
+</div>
+${f.remarks?'<div class="remarks-box"><div class="rtitle">備考</div>'+esc(f.remarks).replace(/\n/g,'<br>')+'</div>':''}
+<div class="section-title">注意事項</div>
+<ul class="default-notes">
+<li>初回ログイン後、速やかにパスワードを変更してください。</li>
+<li>パスワードは他者に開示しないでください。</li>
+<li>本通知書は受領確認後、シュレッダー等で安全に破棄してください。</li>
+<li>不明点は${f.issuer?esc(f.issuer):'管理者'}までお問い合わせください。</li>
+</ul>
+<div class="sign-area">
+<div class="sign-block"><div class="sign-label">受領者署名</div><div class="sign-line"></div><div style="font-size:9px;color:#aaa;margin-top:2px;">日付:　　　年　　月　　日</div></div>
+<div class="issuer-block">${f.issuer?'<div>発行者: '+esc(f.issuer)+'</div>':''}${f.org?'<div style="font-size:10px;color:#999;">'+esc(f.org)+'</div>':''}</div>
+</div>
+<div class="footer-line">CONFIDENTIAL - 本書は機密文書です</div>
+</div>`;
+  });
+  return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+FONT_LINK+'<title>アカウント通知書</title><style>'+NOTICE_CSS+'</style></head><body>'+pages+'</body></html>';
+}
+
+const LIST_CSS=`
+@page{size:A4;margin:15mm;}
+body{font-family:'Noto Sans JP',sans-serif;color:#222;font-size:11px;}
+h1{font-size:16px;font-weight:700;margin:0 0 4px;}
+.meta{color:#888;font-size:10px;margin-bottom:10px;}
+.info-box{background:#f5f5fa;border:1px solid #ddd;border-radius:4px;padding:8px 12px;margin-bottom:10px;}
+.info-tbl{border-collapse:collapse;}
+.info-tbl th{text-align:left;padding:2px 14px 2px 0;color:#666;font-weight:600;white-space:nowrap;font-size:11px;}
+.info-tbl td{padding:2px 0;font-size:11px;}
+table.main{width:100%;border-collapse:collapse;margin-bottom:10px;}
+table.main th{background:#3c3c50;color:#fff;text-align:left;padding:5px 8px;font-size:10px;font-weight:600;}
+table.main td{padding:4px 8px;border-bottom:1px solid #e0e0e0;font-size:11px;}
+table.main tr.alt{background:#f8f8fc;}
+.no{color:#999;text-align:center;width:28px;}
+.pw{font-family:Consolas,Monaco,monospace;font-weight:700;color:#147838;font-size:12px;letter-spacing:.3px;}
+.len{text-align:center;color:#999;width:28px;}
+.footer{border-top:1px solid #ddd;padding-top:5px;color:#aaa;font-size:9px;}
+`;
+
+// 単体一覧
+function buildListPage(sel,f){
+  const now=new Date().toLocaleString('ja-JP');
+  let info='';
+  if(f.org||f.user||f.name||f.system){
+    info='<div class="info-box"><table class="info-tbl">';
+    if(f.org)info+='<tr><th>組織名</th><td>'+esc(f.org)+'</td></tr>';
+    if(f.system)info+='<tr><th>システム</th><td>'+esc(f.system)+'</td></tr>';
+    if(f.name)info+='<tr><th>対象者</th><td>'+esc(f.name)+'</td></tr>';
+    if(f.user)info+='<tr><th>ログインID</th><td>'+esc(f.user)+'</td></tr>';
+    info+='</table></div>';
+  }
+  let rows='';
+  sel.forEach((p,i)=>{rows+='<tr'+(i%2?' class="alt"':'')+'><td class="no">'+(i+1)+'</td><td class="pw">'+esc(p.password)+'</td><td>'+esc(p.readingKana)+'</td><td>'+esc(p.readingRomaji)+'</td><td class="len">'+p.length+'</td></tr>';});
+  return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+FONT_LINK+'<title>パスワード一覧</title><style>'+LIST_CSS+'</style></head><body><h1>パスワード一覧</h1><div class="meta">生成日時: '+now+'</div>'+info+'<table class="main"><thead><tr><th class="no">No</th><th>パスワード</th><th>読み方（カタカナ）</th><th>読み方（ローマ字）</th><th class="len">文字数</th></tr></thead><tbody>'+rows+'</tbody></table><div class="footer">CONFIDENTIAL - 取扱注意 | Generated by Passgen</div></body></html>';
+}
+
+// 一括一覧（名前・ID列追加）
+function buildBulkListPage(sel,f){
+  const now=new Date().toLocaleString('ja-JP');
+  let info='';
+  if(f.org||f.system){
+    info='<div class="info-box"><table class="info-tbl">';
+    if(f.org)info+='<tr><th>組織名</th><td>'+esc(f.org)+'</td></tr>';
+    if(f.system)info+='<tr><th>システム</th><td>'+esc(f.system)+'</td></tr>';
+    info+='</table></div>';
+  }
+  let rows='';
+  sel.forEach((e,i)=>{rows+='<tr'+(i%2?' class="alt"':'')+'><td class="no">'+(i+1)+'</td><td>'+esc(e.name)+'</td><td>'+esc(e.user)+'</td><td class="pw">'+esc(e.pw.password)+'</td><td>'+esc(e.pw.readingKana)+'</td><td>'+esc(e.pw.readingRomaji)+'</td></tr>';});
+  return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+FONT_LINK+'<title>パスワード一覧（一括）</title><style>'+LIST_CSS+'</style></head><body><h1>パスワード一覧（一括発行）</h1><div class="meta">生成日時: '+now+' / '+sel.length+'件</div>'+info+'<table class="main"><thead><tr><th class="no">No</th><th>対象者名</th><th>ログインID</th><th>パスワード</th><th>読み方（カタカナ）</th><th>読み方（ローマ字）</th></tr></thead><tbody>'+rows+'</tbody></table><div class="footer">CONFIDENTIAL - 取扱注意 | Generated by Passgen</div></body></html>';
+}
+
+// ===== 印刷 / CSV =====
+function openPrint(html){
+  const w=window.open('','_blank','width=900,height=700');
+  if(!w){showToast('ポップアップがブロックされました。許可してください。');return;}
+  w.document.write(html);w.document.close();w.focus();
+  setTimeout(()=>{w.print();},1200);
+  showToast('印刷ダイアログを開きました（PDFに保存も可能）');
+}
+function downloadCSV(csv,filename){
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=filename;a.click();URL.revokeObjectURL(a.href);
+  showToast('CSVを出力しました');
+}
+
+renderSingle();
+</script>
+</body>
+</html>

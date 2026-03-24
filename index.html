@@ -6,7 +6,7 @@
 <title>Passgen - 日本語読みパスワード生成器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#0f1117;--surface:#1a1d27;--surface2:#242836;--border:#2e3347;
@@ -14,43 +14,40 @@
   --green:#22c55e;--red:#ef4444;--orange:#f59e0b;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Noto Sans JP','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem;}
+body{font-family:'BIZ UDGothic','Noto Sans JP','Segoe UI',sans-serif;font-weight:700;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem;}
 .container{max-width:1000px;margin:0 auto;}
 h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .subtitle{color:var(--text2);margin-bottom:1.5rem;font-size:.9rem;}
 
-/* Tabs */
 .tabs{display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border);}
-.tab{padding:.7rem 1.5rem;font-size:.95rem;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.tab{padding:.7rem 1.5rem;font-size:.95rem;font-weight:700;color:var(--text2);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;}
 .tab:hover{color:var(--text);}
 .tab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
 
-/* Common */
-.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:.3rem;font-weight:500;}
-.field input,.field select,.field textarea{width:100%;padding:.6rem .8rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.95rem;outline:none;transition:border-color .2s;}
+.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:.3rem;font-weight:700;}
+.field input,.field select,.field textarea{width:100%;padding:.6rem .8rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.95rem;font-weight:700;outline:none;transition:border-color .2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
 .field textarea{resize:vertical;min-height:60px;font-size:.85rem;}
-.btn{padding:.6rem 1.2rem;border:none;border-radius:6px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn{padding:.6rem 1.2rem;border:none;border-radius:6px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent2);}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
 .btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}.btn-danger:hover{background:rgba(239,68,68,.1);}
 .btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{background:#d97706;}
 .actions{display:flex;gap:.8rem;margin-bottom:1.5rem;flex-wrap:wrap;}
 .panel{margin-bottom:1.5rem;padding:1.2rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
-.panel-header{font-size:.9rem;color:var(--accent2);font-weight:600;margin-bottom:1rem;}
+.panel-header{font-size:.9rem;color:var(--accent2);font-weight:700;margin-bottom:1rem;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
 .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;}
 .full{grid-column:1/-1;}
 
-/* Tables */
 .pw-table{width:100%;border-collapse:collapse;margin-bottom:1rem;}
-.pw-table th{text-align:left;padding:.6rem .8rem;background:var(--surface2);color:var(--text2);font-size:.8rem;font-weight:600;border-bottom:1px solid var(--border);}
+.pw-table th{text-align:left;padding:.6rem .8rem;background:var(--surface2);color:var(--text2);font-size:.8rem;font-weight:700;border-bottom:1px solid var(--border);}
 .pw-table td{padding:.5rem .8rem;border-bottom:1px solid var(--border);font-size:.9rem;vertical-align:middle;}
 .pw-table tr:hover{background:var(--surface);}
-.pw-cell{font-family:Consolas,Monaco,monospace;font-size:1rem;font-weight:600;letter-spacing:.5px;color:var(--green);user-select:all;cursor:pointer;}
+.pw-cell{font-family:Consolas,Monaco,monospace;font-size:1rem;font-weight:700;letter-spacing:.5px;color:var(--green);user-select:all;cursor:pointer;}
 .pw-cell:hover{color:#4ade80;}
 .reading-romaji{color:var(--text2);font-size:.85rem;}
 .reading-kana{font-size:.85rem;}
@@ -60,7 +57,7 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
 .no{color:var(--text2);text-align:center;width:2.2rem;}
 .chk{text-align:center;width:2.2rem;}
 .chk input{accent-color:var(--accent);cursor:pointer;}
-.strength{display:inline-block;padding:.15rem .5rem;border-radius:3px;font-size:.7rem;font-weight:600;}
+.strength{display:inline-block;padding:.15rem .5rem;border-radius:3px;font-size:.7rem;font-weight:700;}
 .strength-strong{background:rgba(34,197,94,.15);color:var(--green);}
 .strength-medium{background:rgba(234,179,8,.15);color:#eab308;}
 .empty{text-align:center;padding:3rem;color:var(--text2);background:var(--surface);border-radius:8px;border:1px dashed var(--border);}
@@ -73,15 +70,14 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
 .setting-item label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text2);cursor:pointer;}
 .setting-item input[type="checkbox"]{accent-color:var(--accent);}
 
-/* Bulk specific */
 .bulk-input-area{margin-bottom:1rem;}
 .bulk-input-area textarea{font-family:Consolas,Monaco,monospace;font-size:.85rem;min-height:120px;line-height:1.6;}
 .bulk-hint{font-size:.75rem;color:var(--text2);margin-top:.4rem;line-height:1.5;}
 .file-input-wrap{display:inline-block;position:relative;}
 .file-input-wrap input[type="file"]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;top:0;left:0;}
-.user-name-col{min-width:100px;font-weight:500;}
+.user-name-col{min-width:100px;font-weight:700;}
 .user-id-col{min-width:80px;color:var(--text2);font-size:.85rem;}
-.bulk-count{color:var(--accent2);font-size:.85rem;font-weight:500;}
+.bulk-count{color:var(--accent2);font-size:.85rem;font-weight:700;}
 .regen-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:.2rem .4rem;border-radius:3px;cursor:pointer;font-size:.7rem;}
 .regen-btn:hover{border-color:var(--accent);color:var(--accent);}
 
@@ -96,7 +92,6 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
   <h1>Passgen</h1>
   <p class="subtitle">日本語読みパスワード生成器 - 読める・覚えられる・安全なパスワード</p>
 
-  <!-- モード切替タブ -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('single')">単体モード</button>
     <button class="tab" onclick="switchTab('bulk')">一括発行モード</button>
@@ -191,7 +186,7 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
     </div>
 
     <div class="panel">
-      <div class="panel-header">Google Workspace 連携設定</div>
+      <div class="panel-header">クラウドサービス連携設定</div>
       <div class="grid-3">
         <div class="field"><label>メールドメイン</label><input type="text" id="gwsDomain" placeholder="例: example.com"></div>
         <div class="field"><label>組織部門パス (Org Unit Path)</label><input type="text" id="gwsOrgUnit" placeholder="例: / または /営業部"></div>
@@ -199,9 +194,14 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
           <select id="gwsChangePassword"><option value="TRUE" selected>必須 (TRUE)</option><option value="FALSE">不要 (FALSE)</option></select>
         </div>
       </div>
+      <div class="grid-2" style="margin-top:.8rem;">
+        <div class="field"><label>M365 利用場所 (Usage Location)</label><input type="text" id="m365UsageLocation" placeholder="例: JP"></div>
+        <div class="field"><label>Apple Business Manager ロール</label>
+          <select id="abmRole"><option value="Staff" selected>Staff</option><option value="Manager">Manager</option><option value="Administrator">Administrator</option></select>
+        </div>
+      </div>
       <div class="bulk-hint" style="margin-top:.5rem;">
-        ユーザーリストの「ログインID」がメールアドレスのローカルパート（@より前）になります。<br>
-        名前は「姓 名」の形式で入力してください（スペース区切り）。姓のみの場合はLast Nameに入ります。
+        名前は「姓 名」の形式で入力（スペース区切り）。ログインIDがメールの@より前になります。
       </div>
     </div>
 
@@ -210,9 +210,14 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;background:linear-gradie
       <button class="btn btn-secondary" onclick="bulkPrintNotices()">一括通知書印刷</button>
       <button class="btn btn-secondary" onclick="bulkPrintList()">一覧印刷</button>
       <button class="btn btn-secondary" onclick="bulkExportCSV()">CSV出力</button>
-      <button class="btn btn-secondary" onclick="gwsExportAdd()">GWS新規追加CSV</button>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="gwsExportAdd()">GWS新規CSV</button>
       <button class="btn btn-secondary" onclick="gwsExportUpdate()">GWS更新CSV</button>
       <button class="btn btn-secondary" onclick="gwsExportDelete()">GWS削除CSV</button>
+      <button class="btn btn-secondary" onclick="m365ExportAdd()">M365新規CSV</button>
+      <button class="btn btn-secondary" onclick="m365ExportUpdate()">M365更新CSV</button>
+      <button class="btn btn-secondary" onclick="abmExportAdd()">Apple ABM CSV</button>
       <button class="btn btn-danger" onclick="bulkClear()">クリア</button>
     </div>
 
@@ -241,7 +246,6 @@ const PAT=[
   (s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,
   (s,d,a,b)=>d+a+b+s,
 ];
-
 function genPw(lengthPref,symbolSet){
   const syms=symbolSet==='safe'?SYM_SAFE:symbolSet==='all'?SYM_ALL:SYM_STD;
   const h1=lengthPref==='short'?'short':'medium';
@@ -274,7 +278,44 @@ function switchTab(mode){
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function toggleSettings(){document.getElementById('settings').classList.toggle('open');}
-const FONT_LINK='<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">';
+const FONT_LINK='<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">';
+
+// ===== ローカルストレージ =====
+const LS_KEY='passgen_settings';
+const SAVE_FIELDS=[
+  'orgName','systemName','realName','userName','loginUrl','issuerName','noticeRemarks',
+  'bulkOrgName','bulkSystemName','bulkLoginUrl','bulkIssuerName','bulkRemarks','bulkInput',
+  'gwsDomain','gwsOrgUnit','gwsChangePassword','m365UsageLocation','abmRole',
+  'count','lengthPref','symbolSet','bulkLengthPref','bulkSymbolSet',
+  'optUppercase','optDigits','optSymbols'
+];
+function saveToLS(){
+  const data={};
+  SAVE_FIELDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(el.type==='checkbox')data[id]=el.checked;
+    else data[id]=el.value;
+  });
+  try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}
+}
+function loadFromLS(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    SAVE_FIELDS.forEach(id=>{
+      if(!(id in data))return;
+      const el=document.getElementById(id);
+      if(!el)return;
+      if(el.type==='checkbox')el.checked=data[id];
+      else el.value=data[id];
+    });
+  }catch(e){}
+}
+// 入力変更時に自動保存
+document.addEventListener('input',saveToLS);
+document.addEventListener('change',saveToLS);
 
 // ===========================
 // 単体モード
@@ -315,22 +356,18 @@ function getSingleForm(){
     url:document.getElementById('loginUrl').value,issuer:document.getElementById('issuerName').value,
     remarks:document.getElementById('noticeRemarks').value};
 }
-
-// 単体: 通知書
 function printNotice(){
   const sel=passwords.filter(p=>p.selected);
   if(!sel.length){showToast('パスワードを選択してください');return;}
   const f=getSingleForm();
   openPrint(buildNoticePages(sel.map(p=>({pw:p,name:f.name,user:f.user})),f));
 }
-// 単体: 一覧
 function printList(){
   const sel=passwords.filter(p=>p.selected);
   if(!sel.length){showToast('パスワードを選択してください');return;}
   const f=getSingleForm();
   openPrint(buildListPage(sel,f));
 }
-// 単体: CSV
 function exportCSV(){
   const sel=passwords.filter(p=>p.selected);
   if(!sel.length){showToast('パスワードを選択してください');return;}
@@ -343,225 +380,197 @@ function exportCSV(){
 // ===========================
 // 一括発行モード
 // ===========================
-let bulkEntries=[];// [{name,user,pw:{password,readingKana,...},selected}]
+let bulkEntries=[];
 
 function parseBulkInput(){
   const txt=document.getElementById('bulkInput').value.trim();
   if(!txt)return[];
   return txt.split('\n').map(line=>{
     line=line.trim();if(!line)return null;
-    // tab or comma separated
     let parts=line.includes('\t')?line.split('\t'):line.split(',');
     parts=parts.map(s=>s.trim()).filter(Boolean);
     if(!parts.length)return null;
     return{name:parts[0]||'',user:parts[1]||''};
   }).filter(Boolean);
 }
-
 function loadCSV(ev){
-  const file=ev.target.files[0];
-  if(!file)return;
+  const file=ev.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById('bulkInput').value=e.target.result;
-    showToast(file.name+' を読み込みました');
-  };
-  reader.readAsText(file,'UTF-8');
-  ev.target.value='';
+  reader.onload=function(e){document.getElementById('bulkInput').value=e.target.result;showToast(file.name+' を読み込みました');};
+  reader.readAsText(file,'UTF-8');ev.target.value='';
 }
-
 function bulkGenerate(){
   const users=parseBulkInput();
   if(!users.length){showToast('ユーザーリストを入力してください');return;}
   const lp=document.getElementById('bulkLengthPref').value;
   const ss=document.getElementById('bulkSymbolSet').value;
   bulkEntries=users.map(u=>({name:u.name,user:u.user,pw:genPw(lp,ss),selected:true}));
-  renderBulk();
-  showToast(bulkEntries.length+'件のパスワードを生成しました');
+  renderBulk();showToast(bulkEntries.length+'件のパスワードを生成しました');
 }
-
 function bulkRegenOne(i){
   const lp=document.getElementById('bulkLengthPref').value;
   const ss=document.getElementById('bulkSymbolSet').value;
-  bulkEntries[i].pw=genPw(lp,ss);
-  renderBulk();
+  bulkEntries[i].pw=genPw(lp,ss);renderBulk();
 }
-
 function renderBulk(){
   const out=document.getElementById('bulkOutput');
   if(!bulkEntries.length){out.innerHTML='<div class="empty">ユーザーリストを入力して「一括生成」を押してください</div>';return;}
   let h='<div class="bulk-count">'+bulkEntries.length+'件のアカウント</div>';
   h+='<table class="pw-table"><thead><tr><th class="chk"><input type="checkbox" onchange="bulkToggleAll(this.checked)" checked></th><th class="no">No</th><th>対象者名</th><th>ログインID</th><th>パスワード</th><th>読み方</th><th></th></tr></thead><tbody>';
   bulkEntries.forEach((e,i)=>{
-    h+=`<tr>
-      <td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="bulkEntries[${i}].selected=this.checked"></td>
-      <td class="no">${i+1}</td>
-      <td class="user-name-col">${esc(e.name)}</td>
-      <td class="user-id-col">${esc(e.user)}</td>
-      <td class="pw-cell" onclick="copyBulk(${i})">${esc(e.pw.password)}</td>
-      <td class="reading-kana" style="font-size:.8rem;">${esc(e.pw.readingKana)}<br><span class="reading-romaji">${esc(e.pw.readingRomaji)}</span></td>
-      <td><button class="regen-btn" onclick="bulkRegenOne(${i})" title="再生成">&#x21bb;</button></td>
-    </tr>`;
+    h+=`<tr><td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="bulkEntries[${i}].selected=this.checked"></td><td class="no">${i+1}</td><td class="user-name-col">${esc(e.name)}</td><td class="user-id-col">${esc(e.user)}</td><td class="pw-cell" onclick="copyBulk(${i})">${esc(e.pw.password)}</td><td class="reading-kana" style="font-size:.8rem;">${esc(e.pw.readingKana)}<br><span class="reading-romaji">${esc(e.pw.readingRomaji)}</span></td><td><button class="regen-btn" onclick="bulkRegenOne(${i})" title="再生成">&#x21bb;</button></td></tr>`;
   });
   out.innerHTML=h+'</tbody></table>';
 }
-
 function bulkToggleAll(c){bulkEntries.forEach(e=>e.selected=c);renderBulk();}
 function bulkSelectAll(){bulkEntries.forEach(e=>e.selected=true);renderBulk();}
 function bulkClear(){bulkEntries=[];renderBulk();}
-function copyBulk(i){
-  navigator.clipboard.writeText(bulkEntries[i].pw.password).then(()=>showToast(bulkEntries[i].name+' のパスワードをコピーしました'));
-}
-
+function copyBulk(i){navigator.clipboard.writeText(bulkEntries[i].pw.password).then(()=>showToast(bulkEntries[i].name+' のパスワードをコピーしました'));}
 function getBulkForm(){
   return{org:document.getElementById('bulkOrgName').value,system:document.getElementById('bulkSystemName').value,
     url:document.getElementById('bulkLoginUrl').value,issuer:document.getElementById('bulkIssuerName').value,
     remarks:document.getElementById('bulkRemarks').value};
 }
-
-// 一括: 通知書
 function bulkPrintNotices(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
-  const f=getBulkForm();
-  openPrint(buildNoticePages(sel.map(e=>({pw:e.pw,name:e.name,user:e.user})),f));
+  const sel=bulkEntries.filter(e=>e.selected);if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  openPrint(buildNoticePages(sel.map(e=>({pw:e.pw,name:e.name,user:e.user})),getBulkForm()));
 }
-// 一括: 一覧
 function bulkPrintList(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
-  const f=getBulkForm();
-  openPrint(buildBulkListPage(sel,f));
+  const sel=bulkEntries.filter(e=>e.selected);if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  openPrint(buildBulkListPage(sel,getBulkForm()));
 }
-// 一括: CSV
 function bulkExportCSV(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
+  const sel=bulkEntries.filter(e=>e.selected);if(!sel.length){showToast('出力するユーザーを選択してください');return;}
   const f=getBulkForm();
   let csv='No,Name,UserID,Password,Reading_Kana,Reading_Romaji,Length,System\n';
   sel.forEach((e,i)=>{csv+=`${i+1},"${e.name}","${e.user}","${e.pw.password}","${e.pw.readingKana}","${e.pw.readingRomaji}",${e.pw.length},"${f.system}"\n`;});
   downloadCSV(csv,'passgen_bulk_'+new Date().toISOString().slice(0,10)+'.csv');
 }
 
-// ===== Google Workspace CSV =====
+// ===== 共通ヘルパー =====
 function splitName(fullName){
-  // 「姓 名」形式を分割。スペース区切り。姓のみなら Last Name に入れる
   const parts=fullName.trim().split(/\s+/);
-  if(parts.length>=2) return{last:parts[0],first:parts.slice(1).join(' ')};
+  if(parts.length>=2)return{last:parts[0],first:parts.slice(1).join(' ')};
   return{last:parts[0]||'',first:''};
 }
-function getGwsSettings(){
+function getCloudSettings(){
   return{
     domain:document.getElementById('gwsDomain').value.trim(),
     orgUnit:document.getElementById('gwsOrgUnit').value.trim()||'/',
     changePw:document.getElementById('gwsChangePassword').value,
+    usageLoc:document.getElementById('m365UsageLocation').value.trim()||'JP',
+    abmRole:document.getElementById('abmRole').value,
   };
 }
-function buildEmail(userId,domain){
-  if(!domain)return userId;
-  // 既に@が含まれていればそのまま
-  if(userId.includes('@'))return userId;
-  return userId+'@'+domain;
+function buildEmail(uid,domain){
+  if(!domain)return uid;
+  if(uid.includes('@'))return uid;
+  return uid+'@'+domain;
 }
-function csvQuote(v){
-  v=String(v);
-  if(v.includes(',')||v.includes('"')||v.includes('\n'))return '"'+v.replace(/"/g,'""')+'"';
-  return v;
-}
+function csvQ(v){v=String(v);if(v.includes(',')||v.includes('"')||v.includes('\n'))return '"'+v.replace(/"/g,'""')+'"';return v;}
+function requireDomain(){const d=document.getElementById('gwsDomain').value.trim();if(!d){showToast('メールドメインを入力してください');return null;}return d;}
+function getSelected(){const sel=bulkEntries.filter(e=>e.selected);if(!sel.length)showToast('出力するユーザーを選択してください');return sel;}
 
-// GWS新規追加CSV
+// ===== Google Workspace CSV =====
 function gwsExportAdd(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
-  const g=getGwsSettings();
-  if(!g.domain){showToast('メールドメインを入力してください');return;}
-
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
   let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';
-  sel.forEach(e=>{
-    const n=splitName(e.name);
-    const email=buildEmail(e.user,g.domain);
-    csv+=csvQuote(n.first)+','+csvQuote(n.last)+','+csvQuote(email)+','+csvQuote(e.pw.password)+','+csvQuote(g.orgUnit)+','+g.changePw+'\n';
-  });
+  sel.forEach(e=>{const n=splitName(e.name);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(buildEmail(e.user,g.domain))+','+csvQ(e.pw.password)+','+csvQ(g.orgUnit)+','+g.changePw+'\n';});
   downloadCSV(csv,'gws_add_users_'+new Date().toISOString().slice(0,10)+'.csv');
 }
-
-// GWS更新CSV（パスワードリセット用 - 既存ユーザーのパスワードを更新）
 function gwsExportUpdate(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
-  const g=getGwsSettings();
-  if(!g.domain){showToast('メールドメインを入力してください');return;}
-
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
   let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';
-  sel.forEach(e=>{
-    const n=splitName(e.name);
-    const email=buildEmail(e.user,g.domain);
-    csv+=csvQuote(n.first)+','+csvQuote(n.last)+','+csvQuote(email)+','+csvQuote(e.pw.password)+','+csvQuote(g.orgUnit)+','+g.changePw+'\n';
-  });
+  sel.forEach(e=>{const n=splitName(e.name);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(buildEmail(e.user,g.domain))+','+csvQ(e.pw.password)+','+csvQ(g.orgUnit)+','+g.changePw+'\n';});
   downloadCSV(csv,'gws_update_users_'+new Date().toISOString().slice(0,10)+'.csv');
 }
-
-// GWS削除CSV（メールアドレスのみ）
 function gwsExportDelete(){
-  const sel=bulkEntries.filter(e=>e.selected);
-  if(!sel.length){showToast('出力するユーザーを選択してください');return;}
-  const g=getGwsSettings();
-  if(!g.domain){showToast('メールドメインを入力してください');return;}
-
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
   let csv='Email Address [Required]\n';
-  sel.forEach(e=>{
-    csv+=csvQuote(buildEmail(e.user,g.domain))+'\n';
-  });
+  sel.forEach(e=>{csv+=csvQ(buildEmail(e.user,g.domain))+'\n';});
   downloadCSV(csv,'gws_delete_users_'+new Date().toISOString().slice(0,10)+'.csv');
 }
 
+// ===== Microsoft 365 / Entra ID CSV =====
+function m365ExportAdd(){
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
+  let csv='version:v1.0\nName [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in (Yes/No) [accountEnabled] Required,First name [givenName],Last name [surname],Job title [jobTitle],Department [department],Usage location [usageLocation]\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);const email=buildEmail(e.user,g.domain);const display=e.name||email;
+    csv+=csvQ(display)+','+csvQ(email)+','+csvQ(e.pw.password)+',No,'+csvQ(n.first)+','+csvQ(n.last)+',,,'+csvQ(g.usageLoc)+'\n';
+  });
+  downloadCSV(csv,'m365_add_users_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+function m365ExportUpdate(){
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
+  let csv='version:v1.0\nName [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in (Yes/No) [accountEnabled] Required,First name [givenName],Last name [surname],Usage location [usageLocation]\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);const email=buildEmail(e.user,g.domain);const display=e.name||email;
+    csv+=csvQ(display)+','+csvQ(email)+','+csvQ(e.pw.password)+',No,'+csvQ(n.first)+','+csvQ(n.last)+','+csvQ(g.usageLoc)+'\n';
+  });
+  downloadCSV(csv,'m365_update_users_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+// ===== Apple Business Manager CSV =====
+// ABMは直接CSV一括インポート非対応だが、手動作成・IdP連携準備用リファレンスCSVを出力
+function abmExportAdd(){
+  const sel=getSelected();if(!sel.length)return;const g=getCloudSettings();if(!requireDomain())return;
+  let csv='First Name,Last Name,Email Address,Managed Apple ID,Role,Location\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);const email=buildEmail(e.user,g.domain);
+    // Managed Apple ID = email (ABMのフェデレーション認証で使用)
+    csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(email)+','+csvQ(email)+','+csvQ(g.abmRole)+','+csvQ(g.orgUnit)+'\n';
+  });
+  downloadCSV(csv,'abm_users_'+new Date().toISOString().slice(0,10)+'.csv');
+  showToast('Apple ABM参照用CSVを出力しました（手動作成/IdP連携用）');
+}
+
 // ===========================
-// 印刷HTML生成（共通）
+// 印刷HTML生成（共通）- BIZ UDGothic + 太字・大きめ
 // ===========================
 const NOTICE_CSS=`
 @page{size:A4;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Noto Sans JP',sans-serif;color:#222;}
+body{font-family:'BIZ UDGothic','Noto Sans JP',sans-serif;color:#222;font-weight:700;}
 .page{width:210mm;min-height:297mm;padding:20mm 25mm;page-break-after:always;position:relative;}
 .page:last-child{page-break-after:auto;}
 .header{text-align:center;margin-bottom:16mm;}
-.doc-title{font-size:22px;font-weight:700;letter-spacing:6px;border-bottom:2px solid #333;display:inline-block;padding-bottom:4px;}
-.date{font-size:11px;color:#666;margin-top:6px;}
-.to{font-size:14px;margin-bottom:12mm;}
-.to .name{font-size:18px;font-weight:600;}.to .suffix{font-size:14px;font-weight:400;}
-.section-title{font-size:12px;font-weight:600;color:#444;border-left:3px solid #4f46e5;padding-left:8px;margin-bottom:4mm;}
-.account-box{border:1px solid #ccc;border-radius:6px;padding:5mm 6mm;margin-bottom:8mm;background:#fafafe;}
-.account-row{display:flex;padding:2.5mm 0;border-bottom:1px solid #eee;font-size:12px;}
+.doc-title{font-size:26px;font-weight:700;letter-spacing:8px;border-bottom:3px solid #333;display:inline-block;padding-bottom:6px;}
+.date{font-size:13px;color:#555;margin-top:8px;font-weight:700;}
+.to{font-size:16px;margin-bottom:12mm;}
+.to .name{font-size:22px;font-weight:700;}.to .suffix{font-size:16px;font-weight:700;}
+.section-title{font-size:14px;font-weight:700;color:#333;border-left:4px solid #4f46e5;padding-left:10px;margin-bottom:5mm;}
+.account-box{border:2px solid #bbb;border-radius:8px;padding:6mm 7mm;margin-bottom:8mm;background:#fafafe;}
+.account-row{display:flex;padding:3mm 0;border-bottom:1px solid #ddd;font-size:14px;font-weight:700;}
 .account-row:last-child{border-bottom:none;}
-.account-label{width:40mm;flex-shrink:0;color:#666;font-weight:500;}
-.account-value{font-weight:500;}
-.account-value.pw{font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;color:#1a6b35;letter-spacing:1px;}
-.account-value.reading{font-size:11px;color:#888;margin-top:1px;}
-.remarks-box{border:1px solid #ddd;border-radius:4px;padding:4mm 5mm;background:#fff8f0;font-size:11px;line-height:1.7;color:#555;margin-bottom:8mm;}
-.remarks-box .rtitle{font-weight:600;color:#b45309;margin-bottom:2mm;}
-.default-notes{font-size:10px;color:#888;line-height:1.6;margin-bottom:10mm;}
-.default-notes li{margin-bottom:1mm;}
+.account-label{width:42mm;flex-shrink:0;color:#555;font-weight:700;}
+.account-value{font-weight:700;}
+.account-value.pw{font-family:Consolas,Monaco,monospace;font-size:20px;font-weight:700;color:#1a6b35;letter-spacing:1.5px;}
+.account-value.reading{font-size:14px;color:#666;margin-top:2px;font-weight:700;}
+.remarks-box{border:2px solid #ddd;border-radius:6px;padding:5mm 6mm;background:#fff8f0;font-size:13px;line-height:1.8;color:#444;margin-bottom:8mm;font-weight:700;}
+.remarks-box .rtitle{font-weight:700;color:#b45309;margin-bottom:3mm;font-size:14px;}
+.default-notes{font-size:12px;color:#666;line-height:1.7;margin-bottom:10mm;font-weight:700;}
+.default-notes li{margin-bottom:2mm;}
 .sign-area{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12mm;}
-.sign-block{text-align:center;}.sign-label{font-size:10px;color:#888;margin-bottom:2mm;}
-.sign-line{width:50mm;border-bottom:1px solid #999;height:12mm;}
-.issuer-block{text-align:right;font-size:11px;color:#555;}
-.footer-line{position:absolute;bottom:12mm;left:25mm;right:25mm;border-top:1px solid #ddd;padding-top:3mm;font-size:8px;color:#bbb;text-align:center;}
+.sign-block{text-align:center;}.sign-label{font-size:12px;color:#777;margin-bottom:3mm;font-weight:700;}
+.sign-line{width:55mm;border-bottom:2px solid #888;height:14mm;}
+.issuer-block{text-align:right;font-size:13px;color:#444;font-weight:700;}
+.footer-line{position:absolute;bottom:12mm;left:25mm;right:25mm;border-top:1px solid #ddd;padding-top:3mm;font-size:9px;color:#bbb;text-align:center;font-weight:400;}
 `;
 
-// entries: [{pw,name,user}], f: common form data
 function buildNoticePages(entries,f){
   const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
   let pages='';
   entries.forEach(e=>{
     pages+=`<div class="page">
 <div class="header"><div class="doc-title">アカウント通知書</div>
-${f.org?'<div style="font-size:11px;color:#666;margin-top:4px;">'+esc(f.org)+'</div>':''}
+${f.org?'<div style="font-size:13px;color:#555;margin-top:6px;font-weight:700;">'+esc(f.org)+'</div>':''}
 <div class="date">${today}</div></div>
 <div class="to">${e.name?'<span class="name">'+esc(e.name)+'</span> <span class="suffix">殿</span>':''}</div>
 <div class="section-title">アカウント情報</div>
 <div class="account-box">
 ${f.system?'<div class="account-row"><div class="account-label">システム名</div><div class="account-value">'+esc(f.system)+'</div></div>':''}
 ${e.user?'<div class="account-row"><div class="account-label">ログインID</div><div class="account-value">'+esc(e.user)+'</div></div>':''}
-${f.url?'<div class="account-row"><div class="account-label">ログインURL</div><div class="account-value" style="font-size:11px;">'+esc(f.url)+'</div></div>':''}
+${f.url?'<div class="account-row"><div class="account-label">ログインURL</div><div class="account-value" style="font-size:12px;">'+esc(f.url)+'</div></div>':''}
 <div class="account-row"><div class="account-label">初期パスワード</div><div class="account-value pw">${esc(e.pw.password)}</div></div>
 <div class="account-row"><div class="account-label">パスワード読み方</div><div><div class="account-value reading">${esc(e.pw.readingKana)} / ${esc(e.pw.readingRomaji)}</div></div></div>
 </div>
@@ -574,8 +583,8 @@ ${f.remarks?'<div class="remarks-box"><div class="rtitle">備考</div>'+esc(f.re
 <li>不明点は${f.issuer?esc(f.issuer):'管理者'}までお問い合わせください。</li>
 </ul>
 <div class="sign-area">
-<div class="sign-block"><div class="sign-label">受領者署名</div><div class="sign-line"></div><div style="font-size:9px;color:#aaa;margin-top:2px;">日付:　　　年　　月　　日</div></div>
-<div class="issuer-block">${f.issuer?'<div>発行者: '+esc(f.issuer)+'</div>':''}${f.org?'<div style="font-size:10px;color:#999;">'+esc(f.org)+'</div>':''}</div>
+<div class="sign-block"><div class="sign-label">受領者署名</div><div class="sign-line"></div><div style="font-size:10px;color:#aaa;margin-top:3px;">日付:　　　年　　月　　日</div></div>
+<div class="issuer-block">${f.issuer?'<div>発行者: '+esc(f.issuer)+'</div>':''}${f.org?'<div style="font-size:12px;color:#888;">'+esc(f.org)+'</div>':''}</div>
 </div>
 <div class="footer-line">CONFIDENTIAL - 本書は機密文書です</div>
 </div>`;
@@ -585,24 +594,23 @@ ${f.remarks?'<div class="remarks-box"><div class="rtitle">備考</div>'+esc(f.re
 
 const LIST_CSS=`
 @page{size:A4;margin:15mm;}
-body{font-family:'Noto Sans JP',sans-serif;color:#222;font-size:11px;}
-h1{font-size:16px;font-weight:700;margin:0 0 4px;}
-.meta{color:#888;font-size:10px;margin-bottom:10px;}
+body{font-family:'BIZ UDGothic','Noto Sans JP',sans-serif;color:#222;font-size:12px;font-weight:700;}
+h1{font-size:18px;font-weight:700;margin:0 0 4px;}
+.meta{color:#888;font-size:11px;margin-bottom:10px;}
 .info-box{background:#f5f5fa;border:1px solid #ddd;border-radius:4px;padding:8px 12px;margin-bottom:10px;}
 .info-tbl{border-collapse:collapse;}
-.info-tbl th{text-align:left;padding:2px 14px 2px 0;color:#666;font-weight:600;white-space:nowrap;font-size:11px;}
-.info-tbl td{padding:2px 0;font-size:11px;}
+.info-tbl th{text-align:left;padding:2px 14px 2px 0;color:#555;font-weight:700;white-space:nowrap;font-size:12px;}
+.info-tbl td{padding:2px 0;font-size:12px;}
 table.main{width:100%;border-collapse:collapse;margin-bottom:10px;}
-table.main th{background:#3c3c50;color:#fff;text-align:left;padding:5px 8px;font-size:10px;font-weight:600;}
-table.main td{padding:4px 8px;border-bottom:1px solid #e0e0e0;font-size:11px;}
+table.main th{background:#3c3c50;color:#fff;text-align:left;padding:6px 8px;font-size:11px;font-weight:700;}
+table.main td{padding:5px 8px;border-bottom:1px solid #e0e0e0;font-size:12px;font-weight:700;}
 table.main tr.alt{background:#f8f8fc;}
 .no{color:#999;text-align:center;width:28px;}
-.pw{font-family:Consolas,Monaco,monospace;font-weight:700;color:#147838;font-size:12px;letter-spacing:.3px;}
+.pw{font-family:Consolas,Monaco,monospace;font-weight:700;color:#147838;font-size:13px;letter-spacing:.3px;}
 .len{text-align:center;color:#999;width:28px;}
-.footer{border-top:1px solid #ddd;padding-top:5px;color:#aaa;font-size:9px;}
+.footer{border-top:1px solid #ddd;padding-top:5px;color:#aaa;font-size:9px;font-weight:400;}
 `;
 
-// 単体一覧
 function buildListPage(sel,f){
   const now=new Date().toLocaleString('ja-JP');
   let info='';
@@ -619,7 +627,6 @@ function buildListPage(sel,f){
   return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+FONT_LINK+'<title>パスワード一覧</title><style>'+LIST_CSS+'</style></head><body><h1>パスワード一覧</h1><div class="meta">生成日時: '+now+'</div>'+info+'<table class="main"><thead><tr><th class="no">No</th><th>パスワード</th><th>読み方（カタカナ）</th><th>読み方（ローマ字）</th><th class="len">文字数</th></tr></thead><tbody>'+rows+'</tbody></table><div class="footer">CONFIDENTIAL - 取扱注意 | Generated by Passgen</div></body></html>';
 }
 
-// 一括一覧（名前・ID列追加）
 function buildBulkListPage(sel,f){
   const now=new Date().toLocaleString('ja-JP');
   let info='';
@@ -639,7 +646,7 @@ function openPrint(html){
   const w=window.open('','_blank','width=900,height=700');
   if(!w){showToast('ポップアップがブロックされました。許可してください。');return;}
   w.document.write(html);w.document.close();w.focus();
-  setTimeout(()=>{w.print();},1200);
+  setTimeout(()=>{w.print();},1500);
   showToast('印刷ダイアログを開きました（PDFに保存も可能）');
 }
 function downloadCSV(csv,filename){
@@ -649,6 +656,8 @@ function downloadCSV(csv,filename){
   showToast('CSVを出力しました');
 }
 
+// ===== 初期化 =====
+loadFromLS();
 renderSingle();
 </script>
 </body>

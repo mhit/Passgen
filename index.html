@@ -275,32 +275,106 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
 <script>
 // ===== PW生成エンジン =====
 const SYM_STD='!@#$%&*',SYM_SAFE='!@#$',SYM_ALL='!@#$%^&*_+-=';
-// CSPRNG: crypto.getRandomValues ベースの安全な乱数
+// CSPRNG
 function rand(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n;}
 function pick(a){return a[rand(a.length)];}
 function cap(s){return s?s[0].toUpperCase()+s.slice(1):s;}
-// 長さ別の辞書キャッシュ
+
+// ===== 音節テーブル (116音節) =====
+// [romaji, katakana] - 五十音+濁音+半濁音+拗音+外来音
+const SYL=[
+  // 母音 (5)
+  ['a','ア'],['i','イ'],['u','ウ'],['e','エ'],['o','オ'],
+  // か行 (5)
+  ['ka','カ'],['ki','キ'],['ku','ク'],['ke','ケ'],['ko','コ'],
+  // さ行 (5)
+  ['sa','サ'],['shi','シ'],['su','ス'],['se','セ'],['so','ソ'],
+  // た行 (5)
+  ['ta','タ'],['chi','チ'],['tsu','ツ'],['te','テ'],['to','ト'],
+  // な行 (5)
+  ['na','ナ'],['ni','ニ'],['nu','ヌ'],['ne','ネ'],['no','ノ'],
+  // は行 (5)
+  ['ha','ハ'],['hi','ヒ'],['fu','フ'],['he','ヘ'],['ho','ホ'],
+  // ま行 (5)
+  ['ma','マ'],['mi','ミ'],['mu','ム'],['me','メ'],['mo','モ'],
+  // や行 (3)
+  ['ya','ヤ'],['yu','ユ'],['yo','ヨ'],
+  // ら行 (5)
+  ['ra','ラ'],['ri','リ'],['ru','ル'],['re','レ'],['ro','ロ'],
+  // わ行+ん (2)
+  ['wa','ワ'],['n','ン'],
+  // 濁音 (20)
+  ['ga','ガ'],['gi','ギ'],['gu','グ'],['ge','ゲ'],['go','ゴ'],
+  ['za','ザ'],['ji','ジ'],['zu','ズ'],['ze','ゼ'],['zo','ゾ'],
+  ['da','ダ'],['de','デ'],['do','ド'],
+  ['ba','バ'],['bi','ビ'],['bu','ブ'],['be','ベ'],['bo','ボ'],
+  // 半濁音 (5)
+  ['pa','パ'],['pi','ピ'],['pu','プ'],['pe','ペ'],['po','ポ'],
+  // 拗音 (21)
+  ['kya','キャ'],['kyu','キュ'],['kyo','キョ'],
+  ['sha','シャ'],['shu','シュ'],['sho','ショ'],
+  ['cha','チャ'],['chu','チュ'],['cho','チョ'],
+  ['nya','ニャ'],['nyu','ニュ'],['nyo','ニョ'],
+  ['hya','ヒャ'],['hyu','ヒュ'],['hyo','ヒョ'],
+  ['rya','リャ'],['ryu','リュ'],['ryo','リョ'],
+  ['gya','ギャ'],['gyu','ギュ'],['gyo','ギョ'],
+  // 外来音 (12)
+  ['va','ヴァ'],['vi','ヴィ'],['ve','ヴェ'],['vo','ヴォ'],
+  ['fa','ファ'],['fi','フィ'],['fe','フェ'],['fo','フォ'],
+  ['ja','ジャ'],['ju','ジュ'],['jo','ジョ'],
+  ['di','ディ'],
+];
+// ンで終わらない音節 (語頭・語中用)
+const SYL_START=SYL.filter(s=>s[0]!=='n'||s[0].length>1);
+
+// 音節合成で発音可能な「語」を動的生成
+function synthWord(targetLen){
+  // targetLen: romaji目標文字数 (2-8)
+  let romaji='',kana='',len=0;
+  const maxSyl=targetLen<=4?2:targetLen<=6?3:4;
+  for(let i=0;i<maxSyl&&len<targetLen;i++){
+    // 最後の音節はンもOK、それ以外はンで終わらない
+    const pool=(i<maxSyl-1)?SYL_START:SYL;
+    const s=pick(pool);
+    romaji+=s[0];kana+=s[1];len+=s[0].length;
+  }
+  return[romaji,kana];
+}
+
+// 辞書キャッシュ
 const _wordCache={};
-function pickWord(h){
+function pickDictWord(h){
   if(!_wordCache[h]){
     _wordCache[h]=h==='short'?WORD_LIST.filter(w=>w[0].length<=4):h==='long'?WORD_LIST.filter(w=>w[0].length>=3):[...WORD_LIST];
   }
   return pick(_wordCache[h]);
 }
+
+// 語を取得: ハイブリッド (50%辞書 / 50%音節合成)
+function pickWord(hint){
+  const targetLen=hint==='short'?rand(3)+2:hint==='long'?rand(3)+5:rand(3)+3;
+  if(rand(2)===0){
+    // 辞書モード
+    return pickDictWord(hint);
+  }else{
+    // 音節合成モード
+    return synthWord(targetLen);
+  }
+}
+
 const PAT=[(s,d,a,b)=>s+a+b+d,(s,d,a,b)=>s+d+a+b,(s,d,a,b)=>a+d+s+b,(s,d,a,b)=>a+b+s+d,(s,d,a,b)=>d+a+s+b,(s,d,a,b)=>d+s+a+b,(s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,(s,d,a,b)=>d+a+b+s];
 function genPw(lp,ss){
   const syms=ss==='safe'?SYM_SAFE:ss==='all'?SYM_ALL:SYM_STD;
-  const wPool1=lp==='short'?'short':'medium';
-  const wPool2=lp==='short'?'short':lp==='long'?'long':'medium';
-  const pool1Sz=(_wordCache[wPool1]||WORD_LIST).length;
-  const pool2Sz=(_wordCache[wPool2]||WORD_LIST).length;
-  const[r1,k1]=pickWord(wPool1),[r2,k2]=pickWord(wPool2);
+  const[r1,k1]=pickWord(lp==='short'?'short':lp==='long'?'long':'medium');
+  const[r2,k2]=pickWord(lp==='short'?'short':lp==='long'?'long':'medium');
   const w1=cap(r1),w2=cap(r2);
   const digitRange=lp==='long'?100:10;
   const d=String(rand(digitRange)),s=syms[rand(syms.length)];
   const pw=pick(PAT)(s,d,w1,w2),len=pw.length;
-  // エントロピー: 辞書ベース (word1 * word2 * patterns * symbols * digits)
-  const entropy=Math.floor(Math.log2(pool1Sz*pool2Sz*PAT.length*syms.length*digitRange));
+  // エントロピー: 辞書(766)+音節合成(116^2~116^4) の混合
+  // 保守的に辞書サイズ+音節2乗の平均で計算
+  const wordSpace=WORD_LIST.length+SYL.length*SYL.length;
+  const entropy=Math.floor(Math.log2(wordSpace*wordSpace*PAT.length*syms.length*digitRange));
   return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:len};
 }
 

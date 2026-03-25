@@ -328,54 +328,71 @@ const SYL=[
 const SYL_START=SYL.filter(s=>s[0]!=='n'||s[0].length>1);
 
 // 音節合成で発音可能な「語」を動的生成
-function synthWord(targetLen){
-  // targetLen: romaji目標文字数 (2-8)
-  let romaji='',kana='',len=0;
-  const maxSyl=targetLen<=4?2:targetLen<=6?3:4;
-  for(let i=0;i<maxSyl&&len<targetLen;i++){
-    // 最後の音節はンもOK、それ以外はンで終わらない
+// minSyl: 最低音節数を保証
+function synthWord(targetLen,minSyl){
+  minSyl=minSyl||2;
+  let romaji='',kana='',sylCount=0;
+  const maxSyl=targetLen<=4?Math.max(2,minSyl):targetLen<=6?Math.max(3,minSyl):Math.max(4,minSyl);
+  for(let i=0;i<maxSyl;i++){
+    if(i>=minSyl&&romaji.length>=targetLen)break;
     const pool=(i<maxSyl-1)?SYL_START:SYL;
     const s=pick(pool);
-    romaji+=s[0];kana+=s[1];len+=s[0].length;
+    romaji+=s[0];kana+=s[1];sylCount++;
   }
   return[romaji,kana];
 }
 
-// 辞書キャッシュ
+// 辞書キャッシュ (最低ローマ字長でフィルタ)
 const _wordCache={};
-function pickDictWord(h){
-  if(!_wordCache[h]){
-    _wordCache[h]=h==='short'?WORD_LIST.filter(w=>w[0].length<=4):h==='long'?WORD_LIST.filter(w=>w[0].length>=3):[...WORD_LIST];
+function pickDictWord(minRomaji,maxRomaji){
+  const key=minRomaji+'-'+maxRomaji;
+  if(!_wordCache[key]){
+    _wordCache[key]=WORD_LIST.filter(w=>w[0].length>=minRomaji&&w[0].length<=maxRomaji);
+    if(!_wordCache[key].length)_wordCache[key]=[...WORD_LIST];
   }
-  return pick(_wordCache[h]);
+  return pick(_wordCache[key]);
 }
+
+// モード別の語長設定
+const WORD_SPEC={
+  short: {minRomaji:2,maxRomaji:5,synthTarget:3,synthMinSyl:2},
+  medium:{minRomaji:3,maxRomaji:7,synthTarget:5,synthMinSyl:2},
+  long:  {minRomaji:4,maxRomaji:8,synthTarget:6,synthMinSyl:3},
+};
 
 // 語を取得: ハイブリッド (50%辞書 / 50%音節合成)
 function pickWord(hint){
-  const targetLen=hint==='short'?rand(3)+2:hint==='long'?rand(3)+5:rand(3)+3;
+  const spec=WORD_SPEC[hint]||WORD_SPEC.medium;
   if(rand(2)===0){
-    // 辞書モード
-    return pickDictWord(hint);
+    return pickDictWord(spec.minRomaji,spec.maxRomaji);
   }else{
-    // 音節合成モード
-    return synthWord(targetLen);
+    return synthWord(spec.synthTarget,spec.synthMinSyl);
   }
 }
 
 const PAT=[(s,d,a,b)=>s+a+b+d,(s,d,a,b)=>s+d+a+b,(s,d,a,b)=>a+d+s+b,(s,d,a,b)=>a+b+s+d,(s,d,a,b)=>d+a+s+b,(s,d,a,b)=>d+s+a+b,(s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,(s,d,a,b)=>d+a+b+s];
+
+// 最低文字数: short=8, medium=10, long=12
+const MIN_PW_LEN={short:8,medium:10,long:12};
+
 function genPw(lp,ss){
   const syms=ss==='safe'?SYM_SAFE:ss==='all'?SYM_ALL:SYM_STD;
-  const[r1,k1]=pickWord(lp==='short'?'short':lp==='long'?'long':'medium');
-  const[r2,k2]=pickWord(lp==='short'?'short':lp==='long'?'long':'medium');
-  const w1=cap(r1),w2=cap(r2);
+  const hint=lp==='short'?'short':lp==='long'?'long':'medium';
   const digitRange=lp==='long'?100:10;
-  const d=String(rand(digitRange)),s=syms[rand(syms.length)];
-  const pw=pick(PAT)(s,d,w1,w2),len=pw.length;
-  // エントロピー: 辞書(766)+音節合成(116^2~116^4) の混合
-  // 保守的に辞書サイズ+音節2乗の平均で計算
-  const wordSpace=WORD_LIST.length+SYL.length*SYL.length;
-  const entropy=Math.floor(Math.log2(wordSpace*wordSpace*PAT.length*syms.length*digitRange));
-  return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:len};
+  const minLen=MIN_PW_LEN[hint];
+
+  // 最低文字数を満たすまでリトライ (最大20回)
+  for(let attempt=0;attempt<20;attempt++){
+    const[r1,k1]=pickWord(hint),[r2,k2]=pickWord(hint);
+    const w1=cap(r1),w2=cap(r2);
+    const d=String(rand(digitRange)),s=syms[rand(syms.length)];
+    const pw=pick(PAT)(s,d,w1,w2);
+    if(pw.length>=minLen||attempt===19){
+      const wordSpace=WORD_LIST.length+SYL.length*SYL.length;
+      const entropy=Math.floor(Math.log2(wordSpace*wordSpace*PAT.length*syms.length*digitRange));
+      return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:pw.length};
+    }
+  }
 }
 
 // ===== 共通 =====

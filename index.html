@@ -176,10 +176,22 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
       <div class="field" style="flex:0 0 100px;"><label>生成数/人</label>
         <select id="count"><option value="1" selected>1個</option><option value="3">3個</option><option value="5">5個</option><option value="10">10個</option></select>
       </div>
-      <div class="field" style="flex:0 0 120px;"><label>パスワード長</label>
-        <select id="lengthPref"><option value="short">短め</option><option value="medium" selected>標準</option><option value="long">長め</option></select>
+      <div class="field" style="flex:1 1 220px;"><label>準拠ポリシー</label>
+        <select id="policyPreset" onchange="applyPolicy()">
+          <option value="gws">Google Workspace (8+文字)</option>
+          <option value="m365">Microsoft 365 / Entra ID (8+, 3種)</option>
+          <option value="apple">Apple ID (8+, 大小数)</option>
+          <option value="ad">Active Directory 既定 (7+, 4種)</option>
+          <option value="ipa" selected>IPA推奨 2024 (10+, 4種)</option>
+          <option value="nist">NIST SP800-63B (8+)</option>
+          <option value="pci">PCI DSS v4.0 (12+, 4種)</option>
+          <option value="custom">カスタム</option>
+        </select>
       </div>
-      <div class="field" style="flex:0 0 150px;"><label>特殊文字</label>
+      <div class="field" style="flex:0 0 70px;"><label>最低文字数</label>
+        <input type="number" id="minLenInput" value="10" min="6" max="32" style="font-size:.8rem;padding:.4rem .5rem;">
+      </div>
+      <div class="field" style="flex:0 0 130px;"><label>特殊文字</label>
         <select id="symbolSet"><option value="standard" selected>標準 (!@#$%&*)</option><option value="safe">安全 (!@#$)</option><option value="all">全て</option></select>
       </div>
       <label style="font-size:.8rem;color:var(--text2);display:flex;align-items:center;gap:.3rem;cursor:pointer;"><input type="checkbox" id="optUppercase" checked style="accent-color:var(--accent);">大文字</label>
@@ -353,14 +365,39 @@ function pickDictWord(minRomaji,maxRomaji){
   return pick(_wordCache[key]);
 }
 
-// モード別の語長設定
+// ===== ポリシープリセット =====
+const POLICIES={
+  gws:   {name:'Google Workspace',minLen:8,  needUpper:false,needLower:false,needDigit:false,needSymbol:false,wordHint:'short',digits:1},
+  m365:  {name:'Microsoft 365',   minLen:8,  needUpper:true, needLower:true, needDigit:true, needSymbol:false,wordHint:'short',digits:1},
+  apple: {name:'Apple ID',        minLen:8,  needUpper:true, needLower:true, needDigit:true, needSymbol:false,wordHint:'short',digits:1},
+  ad:    {name:'Active Directory', minLen:7,  needUpper:true, needLower:true, needDigit:true, needSymbol:true, wordHint:'short',digits:1},
+  ipa:   {name:'IPA推奨 2024',    minLen:10, needUpper:true, needLower:true, needDigit:true, needSymbol:true, wordHint:'medium',digits:1},
+  nist:  {name:'NIST SP800-63B',  minLen:8,  needUpper:false,needLower:false,needDigit:false,needSymbol:false,wordHint:'short',digits:1},
+  pci:   {name:'PCI DSS v4.0',    minLen:12, needUpper:true, needLower:true, needDigit:true, needSymbol:true, wordHint:'long',digits:2},
+  custom:{name:'カスタム',         minLen:8,  needUpper:true, needLower:true, needDigit:true, needSymbol:true, wordHint:'medium',digits:1},
+};
+
+// ポリシー選択時にUI反映
+function applyPolicy(){
+  const id=document.getElementById('policyPreset').value;
+  const p=POLICIES[id];
+  if(!p)return;
+  document.getElementById('minLenInput').value=p.minLen;
+  document.getElementById('optUppercase').checked=p.needUpper||true; // 常にON推奨
+  document.getElementById('optDigits').checked=true;
+  document.getElementById('optSymbols').checked=p.needSymbol;
+  // カスタム以外は最低文字数を固定表示
+  document.getElementById('minLenInput').readOnly=(id!=='custom');
+  saveLS();
+}
+
+// wordHint からスペック選択
 const WORD_SPEC={
   short: {minRomaji:2,maxRomaji:5,synthTarget:3,synthMinSyl:2},
   medium:{minRomaji:3,maxRomaji:7,synthTarget:5,synthMinSyl:2},
   long:  {minRomaji:4,maxRomaji:8,synthTarget:6,synthMinSyl:3},
 };
 
-// 語を取得: ハイブリッド (50%辞書 / 50%音節合成)
 function pickWord(hint){
   const spec=WORD_SPEC[hint]||WORD_SPEC.medium;
   if(rand(2)===0){
@@ -372,26 +409,30 @@ function pickWord(hint){
 
 const PAT=[(s,d,a,b)=>s+a+b+d,(s,d,a,b)=>s+d+a+b,(s,d,a,b)=>a+d+s+b,(s,d,a,b)=>a+b+s+d,(s,d,a,b)=>d+a+s+b,(s,d,a,b)=>d+s+a+b,(s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,(s,d,a,b)=>d+a+b+s];
 
-// 最低文字数: short=8, medium=10, long=12
-const MIN_PW_LEN={short:8,medium:10,long:12};
-
-function genPw(lp,ss){
+function genPw(policyId,ss){
+  const pol=POLICIES[policyId]||POLICIES.ipa;
   const syms=ss==='safe'?SYM_SAFE:ss==='all'?SYM_ALL:SYM_STD;
-  const hint=lp==='short'?'short':lp==='long'?'long':'medium';
-  const digitRange=lp==='long'?100:10;
-  const minLen=MIN_PW_LEN[hint];
+  const hint=pol.wordHint;
+  const digitRange=pol.digits>=2?100:10;
+  // カスタム時はUI上の最低文字数を使用
+  const minLen=policyId==='custom'?parseInt(document.getElementById('minLenInput').value)||8:pol.minLen;
 
-  // 最低文字数を満たすまでリトライ (最大20回)
-  for(let attempt=0;attempt<20;attempt++){
+  for(let attempt=0;attempt<30;attempt++){
     const[r1,k1]=pickWord(hint),[r2,k2]=pickWord(hint);
     const w1=cap(r1),w2=cap(r2);
     const d=String(rand(digitRange)),s=syms[rand(syms.length)];
     const pw=pick(PAT)(s,d,w1,w2);
-    if(pw.length>=minLen||attempt===19){
-      const wordSpace=WORD_LIST.length+SYL.length*SYL.length;
-      const entropy=Math.floor(Math.log2(wordSpace*wordSpace*PAT.length*syms.length*digitRange));
-      return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:pw.length};
-    }
+    // 長さチェック
+    if(pw.length<minLen&&attempt<29)continue;
+    // 文字種チェック
+    if(pol.needUpper&&!/[A-Z]/.test(pw)&&attempt<29)continue;
+    if(pol.needLower&&!/[a-z]/.test(pw)&&attempt<29)continue;
+    if(pol.needDigit&&!/[0-9]/.test(pw)&&attempt<29)continue;
+    if(pol.needSymbol&&!/[^A-Za-z0-9]/.test(pw)&&attempt<29)continue;
+
+    const wordSpace=WORD_LIST.length+SYL.length*SYL.length;
+    const entropy=Math.floor(Math.log2(wordSpace*wordSpace*PAT.length*syms.length*digitRange));
+    return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:pw.length,policy:pol.name};
   }
 }
 
@@ -421,7 +462,7 @@ function toggleSingleInput(){
 
 // ===== localStorage =====
 const LS_KEY='passgen_v2';
-const SAVE_IDS=['orgName','systemName','loginUrl','issuerName','remarks','gwsDomain','gwsOrgUnit','gwsChangePassword','m365UsageLocation','abmRole','lengthPref','symbolSet','count','optUppercase','optDigits','optSymbols'];
+const SAVE_IDS=['orgName','systemName','loginUrl','issuerName','remarks','gwsDomain','gwsOrgUnit','gwsChangePassword','m365UsageLocation','abmRole','policyPreset','minLenInput','symbolSet','count','optUppercase','optDigits','optSymbols'];
 function saveLS(){const d={};SAVE_IDS.forEach(id=>{const el=document.getElementById(id);if(!el)return;d[id]=el.type==='checkbox'?el.checked:el.value;});try{localStorage.setItem(LS_KEY,JSON.stringify(d));}catch(e){}}
 function loadLS(){try{const r=localStorage.getItem(LS_KEY);if(!r)return;const d=JSON.parse(r);SAVE_IDS.forEach(id=>{if(!(id in d))return;const el=document.getElementById(id);if(!el)return;if(el.type==='checkbox')el.checked=d[id];else el.value=d[id];});}catch(e){}}
 document.addEventListener('input',saveLS);
@@ -644,20 +685,20 @@ function updateUserCount(){
 // ===== 生成 =====
 function generateAll(){
   if(!entries.length){showToast('ユーザーデータを入力してください');return;}
-  const lp=document.getElementById('lengthPref').value;
+  const lp=document.getElementById('policyPreset').value;
   const ss=document.getElementById('symbolSet').value;
   entries.forEach(e=>{e.pw=genPw(lp,ss);});
   renderTable();showToast(entries.length+'件のパスワードを生成しました');
 }
 function regenAll(){
   if(!entries.length)return;
-  const lp=document.getElementById('lengthPref').value;
+  const lp=document.getElementById('policyPreset').value;
   const ss=document.getElementById('symbolSet').value;
   entries.forEach(e=>{if(e.selected)e.pw=genPw(lp,ss);});
   renderTable();showToast('選択項目を再生成しました');
 }
 function regenOne(i){
-  entries[i].pw=genPw(document.getElementById('lengthPref').value,document.getElementById('symbolSet').value);
+  entries[i].pw=genPw(document.getElementById('policyPreset').value,document.getElementById('symbolSet').value);
   renderTable();
 }
 

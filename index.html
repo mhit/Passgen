@@ -373,6 +373,49 @@ const SYL=[
 // ンで終わらない音節 (語頭・語中用)
 const SYL_START=SYL.filter(s=>s[0]!=='n'||s[0].length>1);
 
+// ===== ローマ字→カタカナ逆変換エンジン =====
+// 逆引きマップ構築 (romaji → kana)、長い音節を優先マッチ
+const _r2k={};
+SYL.forEach(([r,k])=>{_r2k[r]=k;});
+// 辞書の逆引きも追加
+WORD_LIST.forEach(([r,k])=>{_r2k[r]=k;});
+// ローマ字キーを長さ降順でソート（グリーディマッチ用）
+const _r2kKeys=Object.keys(_r2k).sort((a,b)=>b.length-a.length);
+
+// ローマ字文字列 → カタカナに変換
+function romajiToKana(romaji){
+  romaji=romaji.toLowerCase();
+  let kana='',pos=0;
+  while(pos<romaji.length){
+    let matched=false;
+    for(const key of _r2kKeys){
+      if(romaji.startsWith(key,pos)){
+        kana+=_r2k[key];
+        pos+=key.length;
+        matched=true;
+        break;
+      }
+    }
+    if(!matched)pos++; // マッチしない文字はスキップ
+  }
+  return kana;
+}
+
+// パスワードからPascalCase部分を抽出して読み方を推定
+function guessReading(password){
+  // 記号と数字を除去してアルファベット部分を取得
+  const alpha=password.replace(/[^A-Za-z]/g,'');
+  if(!alpha)return{kana:'',romaji:''};
+  // PascalCase分割: 大文字の前で区切る
+  const words=alpha.replace(/([A-Z])/g,'_$1').split('_').filter(Boolean).map(w=>w.toLowerCase());
+  if(!words.length)return{kana:'',romaji:''};
+  const kanaWords=words.map(w=>romajiToKana(w));
+  return{
+    kana:kanaWords.join('-'),
+    romaji:words.join('-')
+  };
+}
+
 // 音節合成で発音可能な「語」を動的生成
 // minSyl: 最低音節数を保証
 function synthWord(targetLen,minSyl){
@@ -706,8 +749,14 @@ function applyMappingWith(mapping){
   const dataRows=rawParsed.hasHeader?rawParsed.rows.slice(1):rawParsed.rows;
   const users=dataRows.map(r=>buildUserFromRow(r,mapping)).filter(u=>u.name||u.user);
   entries=users.map(u=>{
-    // パスワード列がある場合: 既存PWをそのまま使用
-    const pw=u.password?{password:u.password,readingRomaji:u.reading||'',readingKana:u.reading||'',entropy:0,strength:'imported',length:u.password.length}:null;
+    if(!u.password)return{name:u.name,user:u.user,pw:null,selected:true,printed:false};
+    // 読み方: 明示的に指定されていれば使用、なければPWから自動推定
+    let rKana=u.reading||'',rRomaji=u.reading||'';
+    if(!rKana){
+      const g=guessReading(u.password);
+      rKana=g.kana;rRomaji=g.romaji;
+    }
+    const pw={password:u.password,readingRomaji:rRomaji,readingKana:rKana,entropy:0,strength:'imported',length:u.password.length};
     return{name:u.name,user:u.user,pw,selected:true,printed:false};
   });
   updateUserCount();

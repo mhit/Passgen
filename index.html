@@ -107,6 +107,22 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
 .dropdown-menu button:hover{background:var(--surface2);}
 .dropdown-sep{padding:.2rem .9rem;font-size:.65rem;color:var(--text2);border-top:1px solid var(--border);margin-top:.2rem;pointer-events:none;}
 
+/* Print status */
+.badge-printed{display:inline-block;padding:.1rem .35rem;border-radius:3px;font-size:.6rem;font-weight:700;background:rgba(34,197,94,.15);color:var(--green);margin-left:.3rem;}
+.badge-unprinted{display:inline-block;padding:.1rem .35rem;border-radius:3px;font-size:.6rem;font-weight:700;background:rgba(234,179,8,.15);color:#eab308;margin-left:.3rem;}
+.row-printed{opacity:.6;}
+.row-printed:hover{opacity:1;}
+
+/* Session history */
+.session-list{max-height:200px;overflow-y:auto;}
+.session-item{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.8rem;cursor:pointer;transition:background .1s;}
+.session-item:hover{background:var(--surface2);}
+.session-item.active{background:rgba(99,102,241,.1);border-left:3px solid var(--accent);}
+.session-meta{flex:1;overflow:hidden;}
+.session-date{color:var(--text2);font-size:.7rem;}
+.session-info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.session-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:.7rem;opacity:.5;padding:.2rem;}.session-del:hover{opacity:1;}
+
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.8rem;transform:translateY(80px);opacity:0;transition:all .25s;z-index:100;}
 .toast.show{transform:translateY(0);opacity:1;}
 
@@ -276,7 +292,24 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="selectAllEntries()">全選択</button>
+      <button class="btn btn-ghost btn-sm" onclick="selectUnprinted()">未印刷のみ</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearPrintStatus()">印刷済み解除</button>
       <button class="btn btn-danger btn-sm" onclick="clearAllEntries()">クリア</button>
+    </div>
+
+    <!-- セッション管理 -->
+    <div style="margin-top:.6rem;">
+      <div class="collapse-head" onclick="toggleCollapse('sessionPanel')">
+        <span class="arrow">▸</span> セッション履歴・バックアップ
+      </div>
+      <div class="collapse-body" id="sessionPanel">
+        <div class="btn-row" style="margin-bottom:.6rem;">
+          <button class="btn btn-ghost btn-sm" onclick="saveSession()">現在のデータを保存</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportJSON()">JSONエクスポート</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">JSONインポート<input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"></label>
+        </div>
+        <div class="session-list" id="sessionList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -469,8 +502,9 @@ document.addEventListener('input',saveLS);
 document.addEventListener('change',saveLS);
 
 // ===== データモデル =====
-// entries: [{name,user,pw:{password,readingKana,...},selected}]
+// entries: [{name,user,pw:{password,readingKana,...},selected,printed}]
 let entries=[];
+let currentSessionId=null;
 
 // ===== Smart Paste =====
 const HEADER_HINTS={
@@ -659,7 +693,7 @@ function cancelMapping(){
 function applyMappingWith(mapping){
   const dataRows=rawParsed.hasHeader?rawParsed.rows.slice(1):rawParsed.rows;
   const users=dataRows.map(r=>buildUserFromRow(r,mapping)).filter(u=>u.name||u.user);
-  entries=users.map(u=>({name:u.name,user:u.user,pw:null,selected:true}));
+  entries=users.map(u=>({name:u.name,user:u.user,pw:null,selected:true,printed:false}));
   updateUserCount();
   renderTable();
   showToast(entries.length+'人のユーザーデータを読み込みました');
@@ -669,7 +703,7 @@ function addSingleUser(){
   const name=document.getElementById('singleName').value.trim();
   const user=document.getElementById('singleUser').value.trim();
   if(!name&&!user){showToast('名前またはIDを入力してください');return;}
-  entries.push({name,user,pw:null,selected:true});
+  entries.push({name,user,pw:null,selected:true,printed:false});
   document.getElementById('singleName').value='';
   document.getElementById('singleUser').value='';
   updateUserCount();
@@ -687,8 +721,9 @@ function generateAll(){
   if(!entries.length){showToast('ユーザーデータを入力してください');return;}
   const lp=document.getElementById('policyPreset').value;
   const ss=document.getElementById('symbolSet').value;
-  entries.forEach(e=>{e.pw=genPw(lp,ss);});
-  renderTable();showToast(entries.length+'件のパスワードを生成しました');
+  entries.forEach(e=>{e.pw=genPw(lp,ss);e.printed=false;});
+  currentSessionId='s_'+Date.now();
+  renderTable();autoSaveSession();showToast(entries.length+'件のパスワードを生成しました');
 }
 function regenAll(){
   if(!entries.length)return;
@@ -707,13 +742,22 @@ function renderTable(){
   const out=document.getElementById('output');
   if(!entries.length){out.innerHTML='<div class="empty">STEP 1 でユーザーデータを入力し「生成」を押してください</div>';return;}
   const hasPw=entries.some(e=>e.pw);
-  let h='<table class="pw-table"><thead><tr><th class="chk"><input type="checkbox" onchange="toggleAll(this.checked)" checked></th><th class="no">No</th><th>名前</th><th>ID</th>';
-  if(hasPw)h+='<th>パスワード</th><th>読み方</th><th>強度</th><th></th>';
+  // 未印刷数を表示
+  const unprintedCount=entries.filter(e=>e.pw&&!e.printed).length;
+  const printedCount=entries.filter(e=>e.pw&&e.printed).length;
+  let h='';
+  if(hasPw&&(printedCount||unprintedCount)){
+    h+=`<div style="padding:.4rem .6rem;font-size:.75rem;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);">印刷済み: ${printedCount} / 未印刷: ${unprintedCount}</div>`;
+  }
+  h+='<table class="pw-table"><thead><tr><th class="chk"><input type="checkbox" onchange="toggleAll(this.checked)" checked></th><th class="no">No</th><th>名前</th><th>ID</th>';
+  if(hasPw)h+='<th>パスワード</th><th>読み方</th><th>状態</th><th></th>';
   h+='</tr></thead><tbody>';
   entries.forEach((e,i)=>{
-    h+=`<tr><td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="entries[${i}].selected=this.checked"></td><td class="no">${i+1}</td><td>${esc(e.name)}</td><td style="color:var(--text2);font-size:.85rem;">${esc(e.user)}</td>`;
+    const rowClass=e.printed?'row-printed':'';
+    h+=`<tr class="${rowClass}"><td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="entries[${i}].selected=this.checked"></td><td class="no">${i+1}</td><td>${esc(e.name)}</td><td style="color:var(--text2);font-size:.85rem;">${esc(e.user)}</td>`;
     if(hasPw&&e.pw){
-      h+=`<td class="pw-cell" onclick="copyPw(${i})">${esc(e.pw.password)}</td><td class="reading">${esc(e.pw.readingKana)}<br>${esc(e.pw.readingRomaji)}</td><td><span class="strength strength-${e.pw.strength}">${e.pw.length}文字</span></td><td><button class="regen-btn" onclick="regenOne(${i})">&#x21bb;</button> <button class="copy-btn" id="cb-${i}" onclick="copyPw(${i})">copy</button></td>`;
+      const badge=e.printed?'<span class="badge-printed">印刷済</span>':'<span class="badge-unprinted">未印刷</span>';
+      h+=`<td class="pw-cell" onclick="copyPw(${i})">${esc(e.pw.password)}</td><td class="reading">${esc(e.pw.readingKana)}<br>${esc(e.pw.readingRomaji)}</td><td><span class="strength strength-${e.pw.strength}">${e.pw.length}文字</span>${badge}</td><td><button class="regen-btn" onclick="regenOne(${i})">&#x21bb;</button> <button class="copy-btn" id="cb-${i}" onclick="copyPw(${i})">copy</button></td>`;
     }else if(hasPw){
       h+='<td colspan="4" style="color:var(--text2)">—</td>';
     }
@@ -724,7 +768,9 @@ function renderTable(){
 
 function toggleAll(c){entries.forEach(e=>e.selected=c);renderTable();}
 function selectAllEntries(){entries.forEach(e=>e.selected=true);renderTable();}
-function clearAllEntries(){entries=[];updateUserCount();renderTable();}
+function selectUnprinted(){entries.forEach(e=>{e.selected=e.pw&&!e.printed;});renderTable();}
+function clearPrintStatus(){entries.forEach(e=>{e.printed=false;});renderTable();showToast('印刷済みステータスを解除しました');}
+function clearAllEntries(){entries=[];currentSessionId=null;updateUserCount();renderTable();}
 function copyPw(i){
   if(!entries[i].pw)return;
   navigator.clipboard.writeText(entries[i].pw.password).then(()=>{
@@ -753,14 +799,20 @@ function getSel(){const s=entries.filter(e=>e.selected&&e.pw);if(!s.length)showT
 function reqDomain(){const d=document.getElementById('gwsDomain').value.trim();if(!d){showToast('クラウド設定でメールドメインを入力してください');return null;}return d;}
 
 // ===== 印刷 =====
+function markPrinted(){
+  entries.forEach(e=>{if(e.selected&&e.pw)e.printed=true;});
+  renderTable();
+  autoSaveSession();
+}
 function printNotice(){
   const sel=getSel();if(!sel.length)return;
   openPrint(buildNoticePages(sel.map(e=>({pw:e.pw,name:e.name,user:e.user})),getForm()));
+  markPrinted();
 }
 function printList(){
   const sel=getSel();if(!sel.length)return;
-  const f=getForm();
-  openPrint(buildListPage(sel,f));
+  openPrint(buildListPage(sel,getForm()));
+  markPrinted();
 }
 
 // ===== CSV出力 =====
@@ -835,9 +887,125 @@ si.addEventListener('drop',e=>{
 });
 document.getElementById('dataInput').addEventListener('paste',handlePaste);
 
+// ===== セッション管理 =====
+const SS_KEY='passgen_sessions';
+function getSessions(){try{return JSON.parse(localStorage.getItem(SS_KEY))||[];}catch(e){return[];}}
+function setSessions(s){try{localStorage.setItem(SS_KEY,JSON.stringify(s));}catch(e){}}
+
+function autoSaveSession(){
+  if(!entries.length||!entries.some(e=>e.pw))return;
+  if(!currentSessionId)currentSessionId='s_'+Date.now();
+  const sessions=getSessions();
+  const idx=sessions.findIndex(s=>s.id===currentSessionId);
+  const data={
+    id:currentSessionId,
+    date:new Date().toISOString(),
+    label:document.getElementById('systemName').value||document.getElementById('orgName').value||'',
+    count:entries.length,
+    printed:entries.filter(e=>e.printed).length,
+    entries:entries.map(e=>({name:e.name,user:e.user,pw:e.pw,printed:!!e.printed}))
+  };
+  if(idx>=0)sessions[idx]=data;else sessions.unshift(data);
+  // 最大20セッション保持
+  if(sessions.length>20)sessions.length=20;
+  setSessions(sessions);
+  renderSessionList();
+}
+
+function saveSession(){
+  if(!entries.length||!entries.some(e=>e.pw)){showToast('保存するデータがありません');return;}
+  if(!currentSessionId)currentSessionId='s_'+Date.now();
+  autoSaveSession();
+  showToast('セッションを保存しました');
+}
+
+function loadSession(id){
+  const sessions=getSessions();
+  const s=sessions.find(s=>s.id===id);
+  if(!s){showToast('セッションが見つかりません');return;}
+  entries=s.entries.map(e=>({name:e.name,user:e.user,pw:e.pw,selected:true,printed:!!e.printed}));
+  currentSessionId=s.id;
+  updateUserCount();
+  renderTable();
+  renderSessionList();
+  showToast(s.count+'件のデータを復元しました（印刷済み: '+s.printed+'件）');
+}
+
+function deleteSession(id,ev){
+  ev.stopPropagation();
+  const sessions=getSessions().filter(s=>s.id!==id);
+  setSessions(sessions);
+  if(currentSessionId===id)currentSessionId=null;
+  renderSessionList();
+  showToast('セッションを削除しました');
+}
+
+function renderSessionList(){
+  const el=document.getElementById('sessionList');
+  if(!el)return;
+  const sessions=getSessions();
+  if(!sessions.length){el.innerHTML='<div style="padding:.6rem;font-size:.8rem;color:var(--text2);">保存済みセッションはありません</div>';return;}
+  let h='';
+  sessions.forEach(s=>{
+    const d=new Date(s.date);
+    const dateStr=d.toLocaleDateString('ja-JP')+' '+d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    const isActive=s.id===currentSessionId;
+    h+=`<div class="session-item${isActive?' active':''}" onclick="loadSession('${s.id}')">
+      <div class="session-meta">
+        <div class="session-info">${esc(s.label||'無題')} — ${s.count}件 (印刷済:${s.printed})</div>
+        <div class="session-date">${dateStr}</div>
+      </div>
+      <button class="session-del" onclick="deleteSession('${s.id}',event)" title="削除">✕</button>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+function exportJSON(){
+  if(!entries.length||!entries.some(e=>e.pw)){showToast('エクスポートするデータがありません');return;}
+  const data={
+    version:1,
+    date:new Date().toISOString(),
+    form:getForm(),
+    entries:entries.map(e=>({name:e.name,user:e.user,pw:e.pw,printed:!!e.printed}))
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='passgen_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
+  showToast('JSONをエクスポートしました');
+}
+
+function importJSON(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.entries||!data.entries.length){showToast('有効なデータがありません');return;}
+      entries=data.entries.map(e=>({name:e.name||'',user:e.user||'',pw:e.pw||null,selected:true,printed:!!e.printed}));
+      currentSessionId='s_'+Date.now();
+      // フォーム値を復元
+      if(data.form){
+        if(data.form.org)document.getElementById('orgName').value=data.form.org;
+        if(data.form.system)document.getElementById('systemName').value=data.form.system;
+        if(data.form.url)document.getElementById('loginUrl').value=data.form.url;
+        if(data.form.issuer)document.getElementById('issuerName').value=data.form.issuer;
+        if(data.form.remarks)document.getElementById('remarks').value=data.form.remarks;
+        saveLS();
+      }
+      updateUserCount();
+      renderTable();
+      autoSaveSession();
+      showToast(entries.length+'件をインポートしました');
+    }catch(err){showToast('JSONの読み込みに失敗しました');}
+  };
+  reader.readAsText(file,'UTF-8');ev.target.value='';
+}
+
 // ===== 初期化 =====
 loadLS();
 renderTable();
+renderSessionList();
 </script>
 </body>
 </html>

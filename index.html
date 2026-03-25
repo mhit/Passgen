@@ -88,6 +88,7 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
 .strength{display:inline-block;padding:.1rem .4rem;border-radius:3px;font-size:.65rem;font-weight:700;}
 .strength-strong{background:rgba(34,197,94,.12);color:var(--green);}
 .strength-medium{background:rgba(234,179,8,.12);color:#eab308;}
+.strength-imported{background:rgba(99,102,241,.12);color:var(--accent2);}
 .empty{text-align:center;padding:2rem;color:var(--text2);background:var(--surface);border-radius:8px;border:1px dashed var(--border);font-size:.85rem;}
 .result-wrap{max-height:55vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px;}
 
@@ -150,7 +151,7 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
     </div>
 
     <div class="smart-input" id="smartInput">
-      <textarea id="dataInput" placeholder="ここにペースト（CSV / スプレッドシート / テキスト）&#10;&#10;例:&#10;山田 太郎, yamada.taro&#10;佐藤 花子, sato.hanako&#10;&#10;または姓・名・メール等の複数列データもOK&#10;ヘッダー行があれば自動認識します"></textarea>
+      <textarea id="dataInput" placeholder="ここにペースト（CSV / スプレッドシート / テキスト）&#10;&#10;例1: 名前, ID&#10;山田 太郎, yamada.taro&#10;佐藤 花子, sato.hanako&#10;&#10;例2: 既存パスワードの印刷&#10;名前, ID, パスワード&#10;山田 太郎, yamada.taro, Abc!1234&#10;&#10;姓・名・メール・PW等の複数列データをそのまま貼り付けOK"></textarea>
       <div class="hint">
         <span class="file-label"><label>CSVファイル読込<input type="file" accept=".csv,.tsv,.txt" onchange="handleFile(event)"></label></span>
         &nbsp;|&nbsp; TAB / カンマ区切り自動検出 &nbsp;|&nbsp; ヘッダー行自動認識
@@ -513,11 +514,13 @@ const HEADER_HINTS={
   fullname:/^(氏名|名前|name|display|フルネーム|full)$/i,
   userid:/^(id|login|user|account|ユーザー|ログイン|アカウント|username|user.?id|login.?id)$/i,
   email:/^(email|mail|メール|e-mail|メールアドレス|email.?address)$/i,
+  password:/^(パスワード|password|pw|pass|初期パスワード|initial.?pass|パス)$/i,
 };
 const DATA_HINTS={
   email:v=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v),
   userid:v=>/^[a-z0-9._-]+$/i.test(v)&&v.includes('.')&&!v.includes('@'),
   jpname:v=>/^[\u3000-\u9FFF\uF900-\uFAFF]+$/.test(v)&&v.length<=4,
+  password:v=>/[A-Z]/.test(v)&&/[a-z]/.test(v)&&/[0-9]/.test(v)&&v.length>=7&&!v.includes(' '),
 };
 
 let rawParsed=null; // {rows:[[]], sep, hasHeader, colCount}
@@ -568,6 +571,7 @@ function autoMapColumns(parsed){
       if(mapping[i]!=='skip')continue;
       const samples=dataRows.slice(0,5).map(r=>r[i]).filter(Boolean);
       if(samples.every(s=>DATA_HINTS.email(s))){mapping[i]='email';}
+      else if(samples.every(s=>DATA_HINTS.password(s))){mapping[i]='password';}
       else if(samples.every(s=>DATA_HINTS.userid(s))){mapping[i]='userid';}
     }
   }
@@ -632,6 +636,7 @@ function showMappingUI(mapping){
         <option value="fullname"${mapping[i]==='fullname'?' selected':''}>氏名（フルネーム）</option>
         <option value="userid"${mapping[i]==='userid'?' selected':''}>ログインID</option>
         <option value="email"${mapping[i]==='email'?' selected':''}>メールアドレス</option>
+        <option value="password"${mapping[i]==='password'?' selected':''}>パスワード（既存）</option>
       </select>
     </div>`;
   }
@@ -651,7 +656,9 @@ function updateMappingPreview(){
   const dataRows=rawParsed.hasHeader?rawParsed.rows.slice(1):rawParsed.rows;
   const preview=dataRows.slice(0,3).map(r=>{
     const u=buildUserFromRow(r,mapping);
-    return `${u.name} → ${u.user||'(IDなし)'}`;
+    let s=`${u.name} → ${u.user||'(IDなし)'}`;
+    if(u.password)s+=' [PW: '+u.password+']';
+    return s;
   }).join('<br>');
   document.getElementById('mappingPreview').innerHTML='<b>プレビュー:</b><br>'+preview;
 }
@@ -666,7 +673,7 @@ function getCurrentMapping(){
 }
 
 function buildUserFromRow(row,mapping){
-  let last='',first='',fullname='',userid='',email='';
+  let last='',first='',fullname='',userid='',email='',password='';
   mapping.forEach((m,i)=>{
     const v=(row[i]||'').trim();
     if(m==='last')last=v;
@@ -674,10 +681,11 @@ function buildUserFromRow(row,mapping){
     else if(m==='fullname')fullname=v;
     else if(m==='userid')userid=v;
     else if(m==='email')email=v;
+    else if(m==='password')password=v;
   });
   const name=fullname||(last&&first?last+' '+first:last||first);
   if(!userid&&email)userid=email.split('@')[0];
-  return{name,user:userid};
+  return{name,user:userid,password};
 }
 
 function applyMapping(){
@@ -693,7 +701,12 @@ function cancelMapping(){
 function applyMappingWith(mapping){
   const dataRows=rawParsed.hasHeader?rawParsed.rows.slice(1):rawParsed.rows;
   const users=dataRows.map(r=>buildUserFromRow(r,mapping)).filter(u=>u.name||u.user);
-  entries=users.map(u=>({name:u.name,user:u.user,pw:null,selected:true,printed:false}));
+  const hasPassword=mapping.includes('password');
+  entries=users.map(u=>{
+    // パスワード列がある場合: 既存PWをそのまま使用（読み方は空）
+    const pw=u.password?{password:u.password,readingRomaji:'',readingKana:'',entropy:0,strength:'imported',length:u.password.length}:null;
+    return{name:u.name,user:u.user,pw,selected:true,printed:false};
+  });
   updateUserCount();
   renderTable();
   showToast(entries.length+'人のユーザーデータを読み込みました');
@@ -757,7 +770,9 @@ function renderTable(){
     h+=`<tr class="${rowClass}"><td class="chk"><input type="checkbox" ${e.selected?'checked':''} onchange="entries[${i}].selected=this.checked"></td><td class="no">${i+1}</td><td>${esc(e.name)}</td><td style="color:var(--text2);font-size:.85rem;">${esc(e.user)}</td>`;
     if(hasPw&&e.pw){
       const badge=e.printed?'<span class="badge-printed">印刷済</span>':'<span class="badge-unprinted">未印刷</span>';
-      h+=`<td class="pw-cell" onclick="copyPw(${i})">${esc(e.pw.password)}</td><td class="reading">${esc(e.pw.readingKana)}<br>${esc(e.pw.readingRomaji)}</td><td><span class="strength strength-${e.pw.strength}">${e.pw.length}文字</span>${badge}</td><td><button class="regen-btn" onclick="regenOne(${i})">&#x21bb;</button> <button class="copy-btn" id="cb-${i}" onclick="copyPw(${i})">copy</button></td>`;
+      const readingHtml=e.pw.readingKana?esc(e.pw.readingKana)+'<br>'+esc(e.pw.readingRomaji):'<span style="color:var(--text2);font-size:.7rem;">インポート済</span>';
+      const strengthLabel=e.pw.strength==='imported'?'既存PW':e.pw.length+'文字';
+      h+=`<td class="pw-cell" onclick="copyPw(${i})">${esc(e.pw.password)}</td><td class="reading">${readingHtml}</td><td><span class="strength strength-${e.pw.strength}">${strengthLabel}</span>${badge}</td><td><button class="regen-btn" onclick="regenOne(${i})">&#x21bb;</button> <button class="copy-btn" id="cb-${i}" onclick="copyPw(${i})">copy</button></td>`;
     }else if(hasPw){
       h+='<td colspan="4" style="color:var(--text2)">—</td>';
     }
@@ -862,7 +877,7 @@ function abmExportAdd(){
 const NOTICE_CSS=`@page{size:A4;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'BIZ UDGothic','Noto Sans JP',sans-serif;color:#222;font-weight:700;}.page{width:210mm;min-height:297mm;padding:20mm 25mm;page-break-after:always;position:relative;}.page:last-child{page-break-after:auto;}.header{text-align:center;margin-bottom:16mm;}.doc-title{font-size:26px;font-weight:700;letter-spacing:8px;border-bottom:3px solid #333;display:inline-block;padding-bottom:6px;}.date{font-size:13px;color:#555;margin-top:8px;}.to{font-size:16px;margin-bottom:12mm;}.to .name{font-size:22px;font-weight:700;}.to .suffix{font-size:16px;}.section-title{font-size:14px;font-weight:700;color:#333;border-left:4px solid #4f46e5;padding-left:10px;margin-bottom:5mm;}.account-box{border:2px solid #bbb;border-radius:8px;padding:6mm 7mm;margin-bottom:8mm;background:#fafafe;}.account-row{display:flex;padding:3mm 0;border-bottom:1px solid #ddd;font-size:14px;font-weight:700;}.account-row:last-child{border-bottom:none;}.account-label{width:42mm;flex-shrink:0;color:#555;}.account-value{font-weight:700;}.account-value.pw{font-family:Consolas,Monaco,monospace;font-size:20px;font-weight:700;color:#1a6b35;letter-spacing:1.5px;}.account-value.reading{font-size:14px;color:#666;margin-top:2px;}.remarks-box{border:2px solid #ddd;border-radius:6px;padding:5mm 6mm;background:#fff8f0;font-size:13px;line-height:1.8;color:#444;margin-bottom:8mm;}.remarks-box .rtitle{font-weight:700;color:#b45309;margin-bottom:3mm;font-size:14px;}.default-notes{font-size:12px;color:#666;line-height:1.7;margin-bottom:10mm;}.default-notes li{margin-bottom:2mm;}.sign-area{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12mm;}.sign-block{text-align:center;}.sign-label{font-size:12px;color:#777;margin-bottom:3mm;}.sign-line{width:55mm;border-bottom:2px solid #888;height:14mm;}.issuer-block{text-align:right;font-size:13px;color:#444;}.footer-line{position:absolute;bottom:12mm;left:25mm;right:25mm;border-top:1px solid #ddd;padding-top:3mm;font-size:9px;color:#bbb;text-align:center;font-weight:400;}`;
 function buildNoticePages(entries,f){
   const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
-  let pages='';entries.forEach(e=>{pages+=`<div class="page"><div class="header"><div class="doc-title">アカウント通知書</div>${f.org?'<div style="font-size:13px;color:#555;margin-top:6px;">'+esc(f.org)+'</div>':''}<div class="date">${today}</div></div><div class="to">${e.name?'<span class="name">'+esc(e.name)+'</span> <span class="suffix">殿</span>':''}</div><div class="section-title">アカウント情報</div><div class="account-box">${f.system?'<div class="account-row"><div class="account-label">システム名</div><div class="account-value">'+esc(f.system)+'</div></div>':''}${e.user?'<div class="account-row"><div class="account-label">ログインID</div><div class="account-value">'+esc(e.user)+'</div></div>':''}${f.url?'<div class="account-row"><div class="account-label">ログインURL</div><div class="account-value" style="font-size:12px;">'+esc(f.url)+'</div></div>':''}<div class="account-row"><div class="account-label">初期パスワード</div><div class="account-value pw">${esc(e.pw.password)}</div></div><div class="account-row"><div class="account-label">パスワード読み方</div><div><div class="account-value reading">${esc(e.pw.readingKana)} / ${esc(e.pw.readingRomaji)}</div></div></div></div>${f.remarks?'<div class="remarks-box"><div class="rtitle">備考</div>'+esc(f.remarks).replace(/\n/g,'<br>')+'</div>':''}<div class="section-title">注意事項</div><ul class="default-notes"><li>初回ログイン後、速やかにパスワードを変更してください。</li><li>パスワードは他者に開示しないでください。</li><li>本通知書は受領確認後、シュレッダー等で安全に破棄してください。</li><li>不明点は${f.issuer?esc(f.issuer):'管理者'}までお問い合わせください。</li></ul><div class="sign-area"><div class="sign-block"><div class="sign-label">受領者署名</div><div class="sign-line"></div><div style="font-size:10px;color:#aaa;margin-top:3px;">日付:　　　年　　月　　日</div></div><div class="issuer-block">${f.issuer?'<div>発行者: '+esc(f.issuer)+'</div>':''}${f.org?'<div style="font-size:12px;color:#888;">'+esc(f.org)+'</div>':''}</div></div><div class="footer-line">CONFIDENTIAL - 本書は機密文書です</div></div>`;});
+  let pages='';entries.forEach(e=>{pages+=`<div class="page"><div class="header"><div class="doc-title">アカウント通知書</div>${f.org?'<div style="font-size:13px;color:#555;margin-top:6px;">'+esc(f.org)+'</div>':''}<div class="date">${today}</div></div><div class="to">${e.name?'<span class="name">'+esc(e.name)+'</span> <span class="suffix">殿</span>':''}</div><div class="section-title">アカウント情報</div><div class="account-box">${f.system?'<div class="account-row"><div class="account-label">システム名</div><div class="account-value">'+esc(f.system)+'</div></div>':''}${e.user?'<div class="account-row"><div class="account-label">ログインID</div><div class="account-value">'+esc(e.user)+'</div></div>':''}${f.url?'<div class="account-row"><div class="account-label">ログインURL</div><div class="account-value" style="font-size:12px;">'+esc(f.url)+'</div></div>':''}<div class="account-row"><div class="account-label">初期パスワード</div><div class="account-value pw">${esc(e.pw.password)}</div></div>${e.pw.readingKana?'<div class="account-row"><div class="account-label">パスワード読み方</div><div><div class="account-value reading">'+esc(e.pw.readingKana)+' / '+esc(e.pw.readingRomaji)+'</div></div></div>':''}</div>${f.remarks?'<div class="remarks-box"><div class="rtitle">備考</div>'+esc(f.remarks).replace(/\n/g,'<br>')+'</div>':''}<div class="section-title">注意事項</div><ul class="default-notes"><li>初回ログイン後、速やかにパスワードを変更してください。</li><li>パスワードは他者に開示しないでください。</li><li>本通知書は受領確認後、シュレッダー等で安全に破棄してください。</li><li>不明点は${f.issuer?esc(f.issuer):'管理者'}までお問い合わせください。</li></ul><div class="sign-area"><div class="sign-block"><div class="sign-label">受領者署名</div><div class="sign-line"></div><div style="font-size:10px;color:#aaa;margin-top:3px;">日付:　　　年　　月　　日</div></div><div class="issuer-block">${f.issuer?'<div>発行者: '+esc(f.issuer)+'</div>':''}${f.org?'<div style="font-size:12px;color:#888;">'+esc(f.org)+'</div>':''}</div></div><div class="footer-line">CONFIDENTIAL - 本書は機密文書です</div></div>`;});
   return'<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+FONT_LINK+'<title>アカウント通知書</title><style>'+NOTICE_CSS+'</style></head><body>'+pages+'</body></html>';
 }
 const LIST_CSS=`@page{size:A4;margin:15mm;}body{font-family:'BIZ UDGothic','Noto Sans JP',sans-serif;color:#222;font-size:12px;font-weight:700;}h1{font-size:18px;margin:0 0 4px;}.meta{color:#888;font-size:11px;margin-bottom:10px;}.info-box{background:#f5f5fa;border:1px solid #ddd;border-radius:4px;padding:8px 12px;margin-bottom:10px;}.info-tbl{border-collapse:collapse;}.info-tbl th{text-align:left;padding:2px 14px 2px 0;color:#555;font-weight:700;font-size:12px;}.info-tbl td{padding:2px 0;font-size:12px;}table.main{width:100%;border-collapse:collapse;margin-bottom:10px;}table.main th{background:#3c3c50;color:#fff;text-align:left;padding:6px 8px;font-size:11px;}table.main td{padding:5px 8px;border-bottom:1px solid #e0e0e0;font-size:12px;}table.main tr.alt{background:#f8f8fc;}.no{color:#999;text-align:center;width:28px;}.pw{font-family:Consolas,Monaco,monospace;font-weight:700;color:#147838;font-size:13px;letter-spacing:.3px;}.footer{border-top:1px solid #ddd;padding-top:5px;color:#aaa;font-size:9px;font-weight:400;}`;

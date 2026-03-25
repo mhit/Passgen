@@ -6,7 +6,7 @@
 <title>Passgen - 日本語読みパスワード生成器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#242836;--border:#2e3347;--text:#e4e4e7;--text2:#9ca3af;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -275,24 +275,39 @@ h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--acce
 <script>
 // ===== PW生成エンジン =====
 const SYM_STD='!@#$%&*',SYM_SAFE='!@#$',SYM_ALL='!@#$%^&*_+-=';
-function rand(n){return Math.floor(Math.random()*n);}
+// CSPRNG: crypto.getRandomValues ベースの安全な乱数
+function rand(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n;}
 function pick(a){return a[rand(a.length)];}
 function cap(s){return s?s[0].toUpperCase()+s.slice(1):s;}
-function pickWord(h){let f=h==='short'?WORD_LIST.filter(w=>w[0].length<=4):h==='long'?WORD_LIST.filter(w=>w[0].length>=3):WORD_LIST;return pick(f.length?f:WORD_LIST);}
+// 長さ別の辞書キャッシュ
+const _wordCache={};
+function pickWord(h){
+  if(!_wordCache[h]){
+    _wordCache[h]=h==='short'?WORD_LIST.filter(w=>w[0].length<=4):h==='long'?WORD_LIST.filter(w=>w[0].length>=3):[...WORD_LIST];
+  }
+  return pick(_wordCache[h]);
+}
 const PAT=[(s,d,a,b)=>s+a+b+d,(s,d,a,b)=>s+d+a+b,(s,d,a,b)=>a+d+s+b,(s,d,a,b)=>a+b+s+d,(s,d,a,b)=>d+a+s+b,(s,d,a,b)=>d+s+a+b,(s,d,a,b)=>a+s+d+b,(s,d,a,b)=>a+d+b+s,(s,d,a,b)=>s+a+d+b,(s,d,a,b)=>d+a+b+s];
 function genPw(lp,ss){
   const syms=ss==='safe'?SYM_SAFE:ss==='all'?SYM_ALL:SYM_STD;
-  const[r1,k1]=pickWord(lp==='short'?'short':'medium'),[r2,k2]=pickWord(lp==='short'?'short':lp==='long'?'long':'medium');
-  const w1=cap(r1),w2=cap(r2),d=lp==='long'?String(rand(100)):String(rand(10)),s=syms[rand(syms.length)];
+  const wPool1=lp==='short'?'short':'medium';
+  const wPool2=lp==='short'?'short':lp==='long'?'long':'medium';
+  const pool1Sz=(_wordCache[wPool1]||WORD_LIST).length;
+  const pool2Sz=(_wordCache[wPool2]||WORD_LIST).length;
+  const[r1,k1]=pickWord(wPool1),[r2,k2]=pickWord(wPool2);
+  const w1=cap(r1),w2=cap(r2);
+  const digitRange=lp==='long'?100:10;
+  const d=String(rand(digitRange)),s=syms[rand(syms.length)];
   const pw=pick(PAT)(s,d,w1,w2),len=pw.length;
-  const cs=(/[A-Z]/.test(pw)?26:0)+(/[a-z]/.test(pw)?26:0)+(/[0-9]/.test(pw)?10:0)+(/[^A-Za-z0-9]/.test(pw)?15:0);
-  return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy:Math.floor(len*Math.log2(cs||2)),strength:Math.floor(len*Math.log2(cs||2))>=50?'strong':'medium',length:len};
+  // エントロピー: 辞書ベース (word1 * word2 * patterns * symbols * digits)
+  const entropy=Math.floor(Math.log2(pool1Sz*pool2Sz*PAT.length*syms.length*digitRange));
+  return{password:pw,readingRomaji:r1+'-'+r2,readingKana:k1+'-'+k2,entropy,strength:entropy>=40?'strong':'medium',length:len};
 }
 
 // ===== 共通 =====
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-const FONT_LINK='<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">';
+const FONT_LINK='<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@700&display=swap" rel="stylesheet">';
 
 // ===== UI helpers =====
 function toggleCollapse(id){
@@ -585,6 +600,10 @@ function copyPw(i){
     if(b){b.textContent='OK';b.classList.add('copied');}
     showToast('コピーしました');
     setTimeout(()=>{if(b){b.textContent='copy';b.classList.remove('copied');}},1500);
+  }).catch(()=>{
+    // file:// や非HTTPS環境でのフォールバック
+    const ta=document.createElement('textarea');ta.value=entries[i].pw.password;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    showToast('コピーしました');
   });
 }
 
@@ -619,12 +638,41 @@ function exportCSV(){
   sel.forEach((e,i)=>{csv+=`${i+1},${csvQ(e.name)},${csvQ(e.user)},${csvQ(e.pw.password)},${csvQ(e.pw.readingKana)},${csvQ(e.pw.readingRomaji)},${e.pw.length}\n`;});
   downloadCSV(csv,'passgen_'+new Date().toISOString().slice(0,10)+'.csv');
 }
-function gwsExportAdd(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';sel.forEach(e=>{const n=splitName(e.name);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(buildEmail(e.user,g.domain))+','+csvQ(e.pw.password)+','+csvQ(g.orgUnit)+','+g.changePw+'\n';});downloadCSV(csv,'gws_add_'+new Date().toISOString().slice(0,10)+'.csv');}
-function gwsExportUpdate(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';sel.forEach(e=>{const n=splitName(e.name);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(buildEmail(e.user,g.domain))+','+csvQ(e.pw.password)+','+csvQ(g.orgUnit)+','+g.changePw+'\n';});downloadCSV(csv,'gws_update_'+new Date().toISOString().slice(0,10)+'.csv');}
-function gwsExportDelete(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='Email Address [Required]\n';sel.forEach(e=>{csv+=csvQ(buildEmail(e.user,g.domain))+'\n';});downloadCSV(csv,'gws_delete_'+new Date().toISOString().slice(0,10)+'.csv');}
-function m365ExportAdd(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='version:v1.0\nName [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in (Yes/No) [accountEnabled] Required,First name [givenName],Last name [surname],Job title [jobTitle],Department [department],Usage location [usageLocation]\n';sel.forEach(e=>{const n=splitName(e.name);const em=buildEmail(e.user,g.domain);csv+=csvQ(e.name||em)+','+csvQ(em)+','+csvQ(e.pw.password)+',No,'+csvQ(n.first)+','+csvQ(n.last)+',,,'+csvQ(g.usageLoc)+'\n';});downloadCSV(csv,'m365_add_'+new Date().toISOString().slice(0,10)+'.csv');}
-function m365ExportUpdate(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='version:v1.0\nName [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in (Yes/No) [accountEnabled] Required,First name [givenName],Last name [surname],Usage location [usageLocation]\n';sel.forEach(e=>{const n=splitName(e.name);const em=buildEmail(e.user,g.domain);csv+=csvQ(e.name||em)+','+csvQ(em)+','+csvQ(e.pw.password)+',No,'+csvQ(n.first)+','+csvQ(n.last)+','+csvQ(g.usageLoc)+'\n';});downloadCSV(csv,'m365_update_'+new Date().toISOString().slice(0,10)+'.csv');}
-function abmExportAdd(){const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;let csv='First Name,Last Name,Email Address,Managed Apple ID,Role,Location\n';sel.forEach(e=>{const n=splitName(e.name);const em=buildEmail(e.user,g.domain);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(em)+','+csvQ(em)+','+csvQ(g.abmRole)+','+csvQ(g.orgUnit)+'\n';});downloadCSV(csv,'abm_'+new Date().toISOString().slice(0,10)+'.csv');showToast('ABM参照用CSV出力完了');}
+// GWS共通 (Add/Updateは同一フォーマット)
+function gwsExport(prefix){
+  const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;
+  let csv='First Name [Required],Last Name [Required],Email Address [Required],Password [Required],Org Unit Path [Required],Change Password at Next Sign-In\n';
+  sel.forEach(e=>{const n=splitName(e.name);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(buildEmail(e.user,g.domain))+','+csvQ(e.pw.password)+','+csvQ(g.orgUnit)+','+g.changePw+'\n';});
+  downloadCSV(csv,'gws_'+prefix+'_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+function gwsExportAdd(){gwsExport('add');}
+function gwsExportUpdate(){gwsExport('update');}
+function gwsExportDelete(){
+  const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;
+  let csv='Email Address [Required]\n';
+  sel.forEach(e=>{csv+=csvQ(buildEmail(e.user,g.domain))+'\n';});
+  downloadCSV(csv,'gws_delete_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+// M365共通
+function m365Export(prefix,extraCols){
+  const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;
+  let csv='version:v1.0\nName [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in (Yes/No) [accountEnabled] Required,First name [givenName],Last name [surname]'+extraCols+'\n';
+  sel.forEach(e=>{
+    const n=splitName(e.name);const em=buildEmail(e.user,g.domain);
+    let row=csvQ(e.name||em)+','+csvQ(em)+','+csvQ(e.pw.password)+',No,'+csvQ(n.first)+','+csvQ(n.last);
+    if(prefix==='add')row+=',,,'+csvQ(g.usageLoc); else row+=','+csvQ(g.usageLoc);
+    csv+=row+'\n';
+  });
+  downloadCSV(csv,'m365_'+prefix+'_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+function m365ExportAdd(){m365Export('add',',Job title [jobTitle],Department [department],Usage location [usageLocation]');}
+function m365ExportUpdate(){m365Export('update',',Usage location [usageLocation]');}
+function abmExportAdd(){
+  const sel=getSel();if(!sel.length)return;const g=getCloud();if(!reqDomain())return;
+  let csv='First Name,Last Name,Email Address,Managed Apple ID,Role,Location\n';
+  sel.forEach(e=>{const n=splitName(e.name);const em=buildEmail(e.user,g.domain);csv+=csvQ(n.first)+','+csvQ(n.last)+','+csvQ(em)+','+csvQ(em)+','+csvQ(g.abmRole)+','+csvQ(g.orgUnit)+'\n';});
+  downloadCSV(csv,'abm_'+new Date().toISOString().slice(0,10)+'.csv');
+}
 
 // ===== 印刷HTML =====
 const NOTICE_CSS=`@page{size:A4;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'BIZ UDGothic','Noto Sans JP',sans-serif;color:#222;font-weight:700;}.page{width:210mm;min-height:297mm;padding:20mm 25mm;page-break-after:always;position:relative;}.page:last-child{page-break-after:auto;}.header{text-align:center;margin-bottom:16mm;}.doc-title{font-size:26px;font-weight:700;letter-spacing:8px;border-bottom:3px solid #333;display:inline-block;padding-bottom:6px;}.date{font-size:13px;color:#555;margin-top:8px;}.to{font-size:16px;margin-bottom:12mm;}.to .name{font-size:22px;font-weight:700;}.to .suffix{font-size:16px;}.section-title{font-size:14px;font-weight:700;color:#333;border-left:4px solid #4f46e5;padding-left:10px;margin-bottom:5mm;}.account-box{border:2px solid #bbb;border-radius:8px;padding:6mm 7mm;margin-bottom:8mm;background:#fafafe;}.account-row{display:flex;padding:3mm 0;border-bottom:1px solid #ddd;font-size:14px;font-weight:700;}.account-row:last-child{border-bottom:none;}.account-label{width:42mm;flex-shrink:0;color:#555;}.account-value{font-weight:700;}.account-value.pw{font-family:Consolas,Monaco,monospace;font-size:20px;font-weight:700;color:#1a6b35;letter-spacing:1.5px;}.account-value.reading{font-size:14px;color:#666;margin-top:2px;}.remarks-box{border:2px solid #ddd;border-radius:6px;padding:5mm 6mm;background:#fff8f0;font-size:13px;line-height:1.8;color:#444;margin-bottom:8mm;}.remarks-box .rtitle{font-weight:700;color:#b45309;margin-bottom:3mm;font-size:14px;}.default-notes{font-size:12px;color:#666;line-height:1.7;margin-bottom:10mm;}.default-notes li{margin-bottom:2mm;}.sign-area{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12mm;}.sign-block{text-align:center;}.sign-label{font-size:12px;color:#777;margin-bottom:3mm;}.sign-line{width:55mm;border-bottom:2px solid #888;height:14mm;}.issuer-block{text-align:right;font-size:13px;color:#444;}.footer-line{position:absolute;bottom:12mm;left:25mm;right:25mm;border-top:1px solid #ddd;padding-top:3mm;font-size:9px;color:#bbb;text-align:center;font-weight:400;}`;
